@@ -11,7 +11,7 @@ Rule: finish and verify one phase before starting the next.
 |---|---|---|---|---|
 | 1 | Scaffold | Next 16 + Tailwind v4, `proxy.ts`, both Supabase clients, migration runner, port 3006, docs | **done** | Verified: `/` → `/login` via proxy, build + lint clean, 0 npm vulnerabilities |
 | 2 | Database | Migrations 0000–0008: `tracker` schema, workspaces + members, domain tables, RLS helpers + policies, expose_schema (APPEND), signup trigger | **blocked** | SQL is written and committed. Cannot apply: the Supabase project no longer exists (see Blockers). |
-| 3 | Auth + shell | Login/register, `lib/auth.ts`, protected `(app)` layout, sidebar, topbar, dark mode | todo | Done when signup auto-creates a workspace and lands on the dashboard |
+| 3 | Auth + shell | Login/register, `lib/auth.ts`, protected `(app)` layout, sidebar, topbar, dark mode | **code complete, unverified** | Build + lint clean. `/login` and `/register` render; `/dashboard` correctly bounces to `/login`. The signed-in half (workspace resolution, sidebar, sign-out) cannot be exercised until the database is back. |
 | 4 | Projects + tasks | `lib/db/projects.ts`, `tasks.ts`, list + detail + kanban, milestones, server-derived progress and health | todo | Done when CRUD works and a second account with no membership sees nothing |
 | 5 | Budgets | Budget lines, expenses, planned-vs-actual rollups | todo | Done when variance is correct on project detail |
 | 6 | Files | Private bucket `project-files`, `lib/storage.ts`, upload button, 300s signed URLs | todo | Done when upload/download/delete work and raw URLs 403 |
@@ -46,6 +46,18 @@ Needs a decision: restore the project, or stand up a new one and update
 `PROJECT_REF` in `scripts/*.mjs` plus `NEXT_PUBLIC_SUPABASE_*` in `.env.local`.
 If the new project is dedicated to this app rather than shared, the `tracker`
 schema and `0008_expose_schema.sql` can both be dropped in favour of `public`.
+
+### To verify once a database exists
+
+1. `npm run migrate -- --all`, then `node scripts/check-schemas.mjs`.
+2. Register an account. Confirm the signup trigger created a workspace and the
+   sidebar shows it with role Owner.
+3. Sign out from the topbar — confirm it lands on `/login` and does not bounce
+   back (`AUTH_ROUTES` in `lib/supabase/middleware.ts` exists for exactly this).
+4. Delete the membership row by hand and reload: `ensure_workspace()` should
+   silently rebuild it.
+5. Sign in as a second account with no membership and confirm every list is
+   empty and every write is refused by RLS, not merely hidden in the UI.
 
 ## Open items
 

@@ -1,8 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-/** Routes reachable without a session. Everything else redirects to /login. */
-const PUBLIC_PATHS = ["/login", "/register", "/auth"];
+/** Sign-in screens. Reachable without a session; pointless with one. */
+const PUBLIC_PATHS = ["/login", "/register"];
+
+/**
+ * Auth machinery (sign-out, callbacks). Always allowed and never redirected —
+ * bouncing a signed-in user away from /auth/signout would make signing out
+ * impossible.
+ */
+const AUTH_ROUTES = ["/auth"];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -32,9 +39,13 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isPublicPath = PUBLIC_PATHS.some((path) =>
-    request.nextUrl.pathname.startsWith(path),
-  );
+  const { pathname } = request.nextUrl;
+
+  if (AUTH_ROUTES.some((path) => pathname.startsWith(path))) {
+    return supabaseResponse;
+  }
+
+  const isPublicPath = PUBLIC_PATHS.some((path) => pathname.startsWith(path));
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();
