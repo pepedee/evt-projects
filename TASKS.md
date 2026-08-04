@@ -12,7 +12,7 @@ Rule: finish and verify one phase before starting the next.
 | 1 | Scaffold | Next 16 + Tailwind v4, `proxy.ts`, both Supabase clients, migration runner, port 3006, docs | **done** | Verified: `/` → `/login` via proxy, build + lint clean, 0 npm vulnerabilities |
 | 2 | Database | Migrations 0000–0008: `tracker` schema, workspaces + members, domain tables, RLS helpers + policies, expose_schema (APPEND), signup trigger | **blocked** | SQL is written and committed. Cannot apply: the Supabase project no longer exists (see Blockers). |
 | 3 | Auth + shell | Login/register, `lib/auth.ts`, protected `(app)` layout, sidebar, topbar, dark mode | **code complete, unverified** | Build + lint clean. `/login` and `/register` render; `/dashboard` correctly bounces to `/login`. The signed-in half (workspace resolution, sidebar, sign-out) cannot be exercised until the database is back. |
-| 4 | Projects + tasks | `lib/db/projects.ts`, `tasks.ts`, list + detail + kanban, milestones, server-derived progress and health | todo | Done when CRUD works and a second account with no membership sees nothing |
+| 4 | Projects + tasks | `lib/db/projects.ts`, `tasks.ts`, list + detail + kanban, milestones, server-derived progress and health | **code complete, unverified** | Build + lint clean, all 13 routes register, guards hold. No query, trigger or RLS policy has ever run. Adds migration `0009_project_overview.sql`. |
 | 5 | Budgets | Budget lines, expenses, planned-vs-actual rollups | todo | Done when variance is correct on project detail |
 | 6 | Files | Private bucket `project-files`, `lib/storage.ts`, upload button, 300s signed URLs | todo | Done when upload/download/delete work and raw URLs 403 |
 | 7 | Dashboard | KPI cards, charts, upcoming + overdue, recent activity | todo | Done when the numbers match the underlying tables |
@@ -58,6 +58,13 @@ schema and `0008_expose_schema.sql` can both be dropped in favour of `public`.
    silently rebuild it.
 5. Sign in as a second account with no membership and confirm every list is
    empty and every write is refused by RLS, not merely hidden in the UI.
+6. Phase 4: create a project, add tasks, mark one done — `progress_pct` must
+   move on its own (the trigger computes it; the app never writes it). Add an
+   overdue task and confirm health flips to at risk, then off track past the
+   target date.
+7. Confirm `tracker.project_overview` respects RLS. It is declared
+   `security_invoker = true`; without that a view hands every workspace's rows
+   to every user. Query it as the second account and expect zero rows.
 
 ## Open items
 

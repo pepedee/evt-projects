@@ -1,7 +1,179 @@
-import { ComingSoon } from "@/components/shared/coming-soon";
+import Link from "next/link";
+import { Plus } from "lucide-react";
+import { listProjects } from "@/lib/db/projects";
+import { requireUser } from "@/lib/auth";
+import { can } from "@/lib/auth";
+import { Card, EmptyState } from "@/components/ui/card";
+import { FilterBar } from "@/components/shared/filter-bar";
+import {
+  HealthBadge,
+  ProgressBar,
+  PriorityBadge,
+  ProjectStatusBadge,
+} from "@/components/shared/status-badge";
+import { formatDate } from "@/lib/format";
+import type { Priority, ProjectStatus } from "@/lib/types";
 
 export const metadata = { title: "Projects · AI Project Tracker" };
 
-export default function ProjectsPage() {
-  return <ComingSoon title="Projects" phase={4} />;
+const STATUS_OPTIONS = [
+  { value: "all", label: "All statuses" },
+  { value: "planning", label: "Planning" },
+  { value: "active", label: "Active" },
+  { value: "on_hold", label: "On hold" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
+];
+
+const PRIORITY_OPTIONS = [
+  { value: "all", label: "All priorities" },
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+  { value: "critical", label: "Critical" },
+];
+
+export default async function ProjectsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const user = await requireUser();
+
+  const single = (key: string) =>
+    (Array.isArray(params[key]) ? params[key][0] : params[key]) ?? undefined;
+
+  const { rows, total, pageCount } = await listProjects({
+    search: single("q"),
+    status: single("status") as ProjectStatus | "all" | undefined,
+    priority: single("priority") as Priority | "all" | undefined,
+    page: Number(single("page") ?? 1),
+  });
+
+  return (
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-center gap-3">
+        <div className="flex-1">
+          <h1 className="text-2xl font-semibold">Projects</h1>
+          <p className="mt-1 text-sm text-muted">
+            {total} {total === 1 ? "project" : "projects"}
+          </p>
+        </div>
+        {can(user, "member") && (
+          <Link
+            href="/projects/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-fg transition hover:opacity-90"
+          >
+            <Plus className="size-4" />
+            New project
+          </Link>
+        )}
+      </header>
+
+      <FilterBar
+        basePath="/projects"
+        searchPlaceholder="Name, code or client"
+        selects={[
+          { name: "status", label: "Status", options: STATUS_OPTIONS },
+          { name: "priority", label: "Priority", options: PRIORITY_OPTIONS },
+        ]}
+      />
+
+      {rows.length === 0 ? (
+        <Card>
+          <EmptyState message="No projects match these filters." />
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {rows.map((project) => (
+            <Link key={project.id} href={`/projects/${project.id}`}>
+              <Card className="h-full p-5 transition hover:border-primary">
+                <div className="flex items-start gap-3">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="truncate font-semibold">{project.name}</h2>
+                    <p className="mt-0.5 truncate text-sm text-muted">
+                      {project.code ? `${project.code} · ` : ""}
+                      {project.client_name ?? "No client"}
+                    </p>
+                  </div>
+                  <HealthBadge health={project.health} />
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <ProjectStatusBadge status={project.status} />
+                  <PriorityBadge priority={project.priority} />
+                </div>
+
+                <div className="mt-4">
+                  <div className="mb-1.5 flex justify-between text-xs text-muted">
+                    <span>
+                      {project.task_done}/{project.task_total} tasks
+                      {project.task_overdue > 0 &&
+                        ` · ${project.task_overdue} overdue`}
+                    </span>
+                    <span className="tabular-nums">{project.progress_pct}%</span>
+                  </div>
+                  <ProgressBar value={project.progress_pct} />
+                </div>
+
+                <p className="mt-3 text-xs text-muted">
+                  Target {formatDate(project.target_date)}
+                </p>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {pageCount > 1 && (
+        <Pagination
+          page={Number(single("page") ?? 1)}
+          pageCount={pageCount}
+          params={params}
+        />
+      )}
+    </div>
+  );
+}
+
+function Pagination({
+  page,
+  pageCount,
+  params,
+}: {
+  page: number;
+  pageCount: number;
+  params: Record<string, string | string[] | undefined>;
+}) {
+  const href = (target: number) => {
+    const next = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (typeof value === "string" && key !== "page") next.set(key, value);
+    }
+    next.set("page", String(target));
+    return `/projects?${next.toString()}`;
+  };
+
+  return (
+    <nav className="flex items-center justify-center gap-3 text-sm">
+      {page > 1 ? (
+        <Link href={href(page - 1)} className="text-primary hover:underline">
+          Previous
+        </Link>
+      ) : (
+        <span className="text-muted">Previous</span>
+      )}
+      <span className="text-muted">
+        Page {page} of {pageCount}
+      </span>
+      {page < pageCount ? (
+        <Link href={href(page + 1)} className="text-primary hover:underline">
+          Next
+        </Link>
+      ) : (
+        <span className="text-muted">Next</span>
+      )}
+    </nav>
+  );
 }
