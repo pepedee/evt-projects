@@ -16,7 +16,7 @@ Rule: finish and verify one phase before starting the next.
 | 5 | Budgets | Budget lines, expenses, planned-vs-actual rollups | **code complete, unverified** | Build + lint clean. Adds migration `0010_budget_rollup.sql`. Every total comes from a SQL view, never from the browser. |
 | 6 | Files | Private bucket `project-files`, `lib/storage.ts`, upload button, 300s signed URLs | **code complete, unverified** | Build + lint clean. Adds migration `0011_storage.sql`. The riskiest phase to have written blind — see steps 12–16. |
 | 7 | Dashboard | KPI cards, charts, upcoming + overdue, recent activity | **code complete, unverified** | Build + lint clean. Charts are plain CSS, server-rendered, no charting library. Palette validated in both modes — see step 17. |
-| 8 | AI summaries | `lib/ai/*`, streaming route, caching by `input_hash` | todo | Done when a summary renders and the second call hits cache |
+| 8 | AI summaries | `lib/ai/*`, streaming route, caching by `input_hash` | **code complete, unverified** | Build + lint clean. Bundle scan confirms no key, prompt or SDK reference reaches the browser. Needs `ANTHROPIC_API_KEY` **and** a database to run. |
 | 9 | Word reports | `lib/reports/word.ts` with `docx`, download route | todo | Done when the `.docx` opens in Word with correct data |
 | 10 | Polish | Empty/loading/error states, activity log view, responsive audit, README | todo | Done when `npm run build` and `npm run lint` are clean and it works on a phone |
 
@@ -26,7 +26,7 @@ Rule: finish and verify one phase before starting the next.
 |---|---|---|
 | Auth | **Supabase Auth**, not NextAuth | RLS policies key off `auth.uid()`. NextAuth would issue its own session and push all security into app code. Kept behind `lib/auth.ts` so a swap touches one file. |
 | Database | **Shared Supabase project, new `tracker` schema** | Matches visa-agency (`agency`) and bakery-pos (`bakery`). Gets Storage and Auth for free. |
-| AI provider | **Anthropic Claude API** (`@anthropic-ai/sdk`) | `claude-sonnet-5` for narrative summaries, `claude-haiku-4-5-20251001` for the frequent risk scan. |
+| AI provider | **Anthropic Claude API** (`@anthropic-ai/sdk`) | Model defaults to `claude-opus-5`, overridable with `ANTHROPIC_MODEL`. Cost is controlled with `effort` (`medium` for narrative kinds, `high` for the risk scan) rather than by silently picking a smaller model. |
 | Word reports | **Generated from code with `docx`** | Full control, no template file to keep in sync. `Unit Report Template (editable).docx` is a layout reference only. |
 | Multi-user | **`workspace_id` + `workspace_members` from day one** | Single user today is one workspace with one member. Adding people stays a data change. |
 | Next version | **16.3.0**, not the siblings' 16.2.10 | 16.2.10 carries nine high-severity advisories (SSRF in server actions, cache confusion, unauthenticated server-function disclosure). The conventions that matter — `proxy.ts`, `--webpack` — are identical. |
@@ -98,6 +98,16 @@ schema and `0008_expose_schema.sql` can both be dropped in favour of `public`.
     each other.
 19. Give a project a very long name and confirm it truncates rather than
     colliding with the value on the right.
+20. Phase 8: set `ANTHROPIC_API_KEY`, open a project, run each summary kind.
+    Confirm the "Thinking…" state appears and is replaced by streaming text.
+21. Run the same summary twice without changing the project — the second must
+    come back instantly marked *Cached*. Then edit one task and re-run: it must
+    regenerate, proving the hash tracks the snapshot.
+22. Confirm a summary never states a fact absent from the project. The prompt
+    forbids it, but this is the failure mode that matters most in a tracker.
+23. Re-run the bundle scan after any change to `lib/ai/`:
+    `Get-ChildItem .next\static -Recurse -Include *.js | Select-String "ANTHROPIC_API_KEY","sk-ant-"`
+    must find nothing.
 
 ## Open items
 

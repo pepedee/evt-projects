@@ -10,8 +10,10 @@ import { BudgetLines } from "@/components/budgets/budget-lines";
 import { ExpenseList } from "@/components/budgets/expense-list";
 import { UploadButton } from "@/components/files/upload-button";
 import { DocumentList } from "@/components/files/document-list";
+import { SummaryPanel } from "@/components/ai/summary-panel";
+import { isAiConfigured } from "@/lib/ai/client";
 import { formatMoney } from "@/lib/format";
-import { Card } from "@/components/ui/card";
+import { Card, EmptyState } from "@/components/ui/card";
 import {
   HealthBadge,
   PriorityBadge,
@@ -118,6 +120,17 @@ export default async function ProjectDetailPage({
           tone={project.variance < 0 ? "danger" : undefined}
         />
       </div>
+
+      <Card
+        title="AI summary"
+        description="Written from this project's own record. Read-only — it never changes anything."
+      >
+        {isAiConfigured() ? (
+          <SummaryPanel projectId={project.id} />
+        ) : (
+          <EmptyState message="Set ANTHROPIC_API_KEY in .env.local to enable AI summaries." />
+        )}
+      </Card>
 
       <Card
         title="Milestones"
