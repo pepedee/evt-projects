@@ -18,7 +18,7 @@ Rule: finish and verify one phase before starting the next.
 | 7 | Dashboard | KPI cards, charts, upcoming + overdue, recent activity | **code complete, unverified** | Build + lint clean. Charts are plain CSS, server-rendered, no charting library. Palette validated in both modes — see step 17. |
 | 8 | AI summaries | `lib/ai/*`, streaming route, caching by `input_hash` | **code complete, unverified** | Build + lint clean. Bundle scan confirms no key, prompt or SDK reference reaches the browser. Needs `ANTHROPIC_API_KEY` **and** a database to run. |
 | 9 | Word reports | `lib/reports/word.ts` with `docx`, download route | **done (layout), route unverified** | `npm run report:preview` renders a real .docx from fixture data — valid OOXML, all sections present. The download route itself still needs a database. |
-| 10 | Polish | Empty/loading/error states, activity log view, responsive audit, README | todo | Done when `npm run build` and `npm run lint` are clean and it works on a phone |
+| 10 | Polish | Empty/loading/error states, activity log view, responsive audit, README | **partly verified** | Build + lint clean. Skeletons, error boundaries, 404, skip link, Escape-to-close, settings + activity log, README done. Responsive verified on the reachable pages only — see step 27. |
 
 ## Decisions (settled — do not relitigate)
 
@@ -119,6 +119,18 @@ schema and `0008_expose_schema.sql` can both be dropped in favour of `public`.
     section, and that a project downloads successfully when
     `ANTHROPIC_API_KEY` is unset — the AI sections are best-effort and must
     never be the reason a download fails.
+27. Phase 10: the responsive audit only covered `/login`, `/register` and the
+    404 — everything behind the login needs a session. Re-run it on the
+    dashboard, project detail, the kanban board and the budget tables at
+    375 / 768 / 1280, in both themes. The tables are the likely offenders:
+    each sits in an `overflow-x-auto` wrapper, so the table should scroll on
+    its own without the page body scrolling sideways.
+28. Keyboard pass: tab from the top of a page behind the login. "Skip to
+    content" should appear first and jump past the sidebar. On a narrow
+    viewport, open the drawer and confirm Escape closes it.
+29. Confirm the loading skeletons actually appear. They only show while a route
+    segment streams, so a fast local database may skip them entirely — throttle
+    the network to see them.
 
 ## Open items
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, Menu, X } from "lucide-react";
@@ -23,8 +23,28 @@ export function Shell({
   const [navOpen, setNavOpen] = useState(false);
   const pathname = usePathname();
 
+  // Escape closes the drawer. Without this the only way out on a phone is to
+  // hit the scrim, which is not reachable from a keyboard.
+  useEffect(() => {
+    if (!navOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setNavOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [navOpen]);
+
   return (
     <div className="min-h-screen">
+      {/* Lets a keyboard user jump the sidebar instead of tabbing every link
+          on every page load. Visible only while focused. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-fg"
+      >
+        Skip to content
+      </a>
+
       {/* Scrim behind the mobile drawer. */}
       {navOpen && (
         <div
@@ -52,7 +72,7 @@ export function Shell({
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+        <nav aria-label="Main" className="flex-1 space-y-1 overflow-y-auto p-3">
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const active = pathname === href || pathname.startsWith(`${href}/`);
             return (
@@ -89,6 +109,7 @@ export function Shell({
             type="button"
             onClick={() => setNavOpen(true)}
             aria-label="Open navigation"
+            aria-expanded={navOpen}
             className="rounded-lg p-2 text-muted hover:bg-surface-2 lg:hidden"
           >
             <Menu className="size-4" />
@@ -112,7 +133,9 @@ export function Shell({
           </div>
         </header>
 
-        <main className="mx-auto max-w-6xl p-4 sm:p-6">{children}</main>
+        <main id="main-content" className="mx-auto max-w-6xl p-4 sm:p-6">
+          {children}
+        </main>
       </div>
     </div>
   );
