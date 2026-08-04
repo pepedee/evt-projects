@@ -15,7 +15,7 @@ Rule: finish and verify one phase before starting the next.
 | 4 | Projects + tasks | `lib/db/projects.ts`, `tasks.ts`, list + detail + kanban, milestones, server-derived progress and health | **code complete, unverified** | Build + lint clean, all 13 routes register, guards hold. No query, trigger or RLS policy has ever run. Adds migration `0009_project_overview.sql`. |
 | 5 | Budgets | Budget lines, expenses, planned-vs-actual rollups | **code complete, unverified** | Build + lint clean. Adds migration `0010_budget_rollup.sql`. Every total comes from a SQL view, never from the browser. |
 | 6 | Files | Private bucket `project-files`, `lib/storage.ts`, upload button, 300s signed URLs | **code complete, unverified** | Build + lint clean. Adds migration `0011_storage.sql`. The riskiest phase to have written blind — see steps 12–16. |
-| 7 | Dashboard | KPI cards, charts, upcoming + overdue, recent activity | todo | Done when the numbers match the underlying tables |
+| 7 | Dashboard | KPI cards, charts, upcoming + overdue, recent activity | **code complete, unverified** | Build + lint clean. Charts are plain CSS, server-rendered, no charting library. Palette validated in both modes — see step 17. |
 | 8 | AI summaries | `lib/ai/*`, streaming route, caching by `input_hash` | todo | Done when a summary renders and the second call hits cache |
 | 9 | Word reports | `lib/reports/word.ts` with `docx`, download route | todo | Done when the `.docx` opens in Word with correct data |
 | 10 | Polish | Empty/loading/error states, activity log view, responsive audit, README | todo | Done when `npm run build` and `npm run lint` are clean and it works on a phone |
@@ -88,6 +88,16 @@ schema and `0008_expose_schema.sql` can both be dropped in favour of `public`.
 16. Upload as a viewer: the storage RLS policy must refuse it, not just the UI.
     Also try a file over 20 MB and a disallowed type — the bucket enforces both
     independently of `validateFile()`.
+17. Phase 7: check the dashboard totals against the tables by hand. `getDashboard`
+    counts open and overdue tasks by summing `project_overview` across live
+    projects — that is only right if the view's per-project counts are right,
+    so step 8 has to pass first.
+18. Put one project over budget and eyeball the meter in both themes. Over
+    budget the track changes meaning: it becomes total spend, split into
+    planned and overspend. Confirm 130% and 400% look clearly different from
+    each other.
+19. Give a project a very long name and confirm it truncates rather than
+    colliding with the value on the right.
 
 ## Open items
 

@@ -20,11 +20,13 @@
   --warning: #b45309;
   --danger: #b91c1c;
 
-  /* Chart palette. Carried over from visa-agency, where it was validated for
-     colour-vision deficiency and 3:1 contrast against these surfaces.
-     Do not add or substitute hues by eye — see AGENTS.md. */
+  /* Chart palette — categorical slot 1 and the reserved status-critical step.
+     Validated against this app's own surfaces (#ffffff light, #131920 dark):
+     all six checks pass in both modes. Do not add or substitute hues by eye;
+     run the dataviz validator. See AGENTS.md. */
   --chart-1: #2a78d6;
   --chart-2: #008300;
+  --chart-critical: #d03b3b;
   --chart-grid: #e1e0d9;
   --chart-axis: #898781;
 }
@@ -44,9 +46,12 @@
   --warning: #fbbf24;
   --danger: #f87171;
 
-  /* Same two hues re-stepped for the dark surface, validated as a set. */
+  /* Re-stepped for the dark surface and validated as a set — not an
+     automatic flip of the light values. Status-critical is mode-invariant
+     and clears 3:1 on both surfaces. */
   --chart-1: #3987e5;
   --chart-2: #008300;
+  --chart-critical: #d03b3b;
   --chart-grid: #2c2c2a;
   --chart-axis: #898781;
 }

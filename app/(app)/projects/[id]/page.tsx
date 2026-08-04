@@ -200,11 +200,13 @@ function Stat({
   return (
     <Card className="p-5">
       <p className="text-sm text-muted">{label}</p>
+      {/* Standalone figure: proportional numerals. tabular-nums is for
+          columns that must align vertically, not for a lone value. */}
       <p
         className={
           tone === "danger"
-            ? "mt-2 text-2xl font-semibold tabular-nums text-danger"
-            : "mt-2 text-2xl font-semibold tabular-nums"
+            ? "mt-2 text-2xl font-semibold text-[var(--chart-critical)]"
+            : "mt-2 text-2xl font-semibold"
         }
       >
         {value}
