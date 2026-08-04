@@ -5,8 +5,11 @@ import { can, requireUser } from "@/lib/auth";
 import { getProject, listMilestones } from "@/lib/db/projects";
 import { listTasks } from "@/lib/db/tasks";
 import { listBudgetLines, listExpenses } from "@/lib/db/budgets";
+import { listDocuments } from "@/lib/db/documents";
 import { BudgetLines } from "@/components/budgets/budget-lines";
 import { ExpenseList } from "@/components/budgets/expense-list";
+import { UploadButton } from "@/components/files/upload-button";
+import { DocumentList } from "@/components/files/document-list";
 import { formatMoney } from "@/lib/format";
 import { Card } from "@/components/ui/card";
 import {
@@ -31,11 +34,12 @@ export default async function ProjectDetailPage({
   const project = await getProject(id);
   if (!project) notFound();
 
-  const [milestones, tasks, budgetLines, expenses] = await Promise.all([
+  const [milestones, tasks, budgetLines, expenses, documents] = await Promise.all([
     listMilestones(id),
     listTasks({ projectId: id }),
     listBudgetLines(id),
     listExpenses(id),
+    listDocuments({ projectId: id }),
   ]);
 
   const canEdit = can(user, "member");
@@ -162,6 +166,21 @@ export default async function ProjectDetailPage({
           canEdit={canEdit}
           canDelete={canDelete}
         />
+      </Card>
+
+      <Card
+        title="Files"
+        description="Drawings, quotes, receipts. Private, with expiring links."
+        action={
+          canEdit ? (
+            <UploadButton
+              workspaceId={user.workspaceId}
+              projectId={project.id}
+            />
+          ) : undefined
+        }
+      >
+        <DocumentList documents={documents} canDelete={canDelete} />
       </Card>
     </div>
   );

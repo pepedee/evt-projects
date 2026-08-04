@@ -14,7 +14,7 @@ Rule: finish and verify one phase before starting the next.
 | 3 | Auth + shell | Login/register, `lib/auth.ts`, protected `(app)` layout, sidebar, topbar, dark mode | **code complete, unverified** | Build + lint clean. `/login` and `/register` render; `/dashboard` correctly bounces to `/login`. The signed-in half (workspace resolution, sidebar, sign-out) cannot be exercised until the database is back. |
 | 4 | Projects + tasks | `lib/db/projects.ts`, `tasks.ts`, list + detail + kanban, milestones, server-derived progress and health | **code complete, unverified** | Build + lint clean, all 13 routes register, guards hold. No query, trigger or RLS policy has ever run. Adds migration `0009_project_overview.sql`. |
 | 5 | Budgets | Budget lines, expenses, planned-vs-actual rollups | **code complete, unverified** | Build + lint clean. Adds migration `0010_budget_rollup.sql`. Every total comes from a SQL view, never from the browser. |
-| 6 | Files | Private bucket `project-files`, `lib/storage.ts`, upload button, 300s signed URLs | todo | Done when upload/download/delete work and raw URLs 403 |
+| 6 | Files | Private bucket `project-files`, `lib/storage.ts`, upload button, 300s signed URLs | **code complete, unverified** | Build + lint clean. Adds migration `0011_storage.sql`. The riskiest phase to have written blind — see steps 12–16. |
 | 7 | Dashboard | KPI cards, charts, upcoming + overdue, recent activity | todo | Done when the numbers match the underlying tables |
 | 8 | AI summaries | `lib/ai/*`, streaming route, caching by `input_hash` | todo | Done when a summary renders and the second call hits cache |
 | 9 | Word reports | `lib/reports/word.ts` with `docx`, download route | todo | Done when the `.docx` opens in Word with correct data |
@@ -76,6 +76,18 @@ schema and `0008_expose_schema.sql` can both be dropped in favour of `public`.
     survive as unassigned (FK is `on delete set null`), not disappear.
 11. Confirm the expense/budget-line project guard fires: charging an expense to
     a line from another project must be refused by the trigger.
+12. Phase 6: upload a file, then fetch its raw storage URL while signed out —
+    it must 403. A public bucket here would expose every customer document.
+13. Force the metadata insert to fail (temporarily break `recordDocument`) and
+    confirm the uploaded object is removed again. An orphaned blob is invisible
+    in the UI and can only be found from the Supabase dashboard.
+14. Upload the same filename to the same project twice. The second must become
+    v2 with `replaces_id` pointing at v1, not restart at v1 — the NULL-safe
+    branch in the version lookup is what makes workspace-level files work.
+15. Delete a file and confirm both the row and the object are gone.
+16. Upload as a viewer: the storage RLS policy must refuse it, not just the UI.
+    Also try a file over 20 MB and a disallowed type — the bucket enforces both
+    independently of `validateFile()`.
 
 ## Open items
 
