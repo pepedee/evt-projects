@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { FileDown, Pencil } from "lucide-react";
 import { can, requireUser } from "@/lib/auth";
 import { getProject, listMilestones } from "@/lib/db/projects";
 import { listTasks } from "@/lib/db/tasks";
@@ -69,8 +69,17 @@ export default async function ProjectDetailPage({
           </div>
         </div>
 
-        {canEdit && (
-          <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
+          {/* A plain link: the browser handles the download, and the route is
+              a GET because building a report changes nothing. */}
+          <a
+            href={`/api/reports/word?projectId=${project.id}`}
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium transition hover:bg-surface-2"
+          >
+            <FileDown className="size-4" />
+            Word report
+          </a>
+          {canEdit && (
             <Link
               href={`/projects/${project.id}/edit`}
               className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium transition hover:bg-surface-2"
@@ -78,9 +87,9 @@ export default async function ProjectDetailPage({
               <Pencil className="size-4" />
               Edit
             </Link>
-            {canDelete && <ArchiveProjectButton projectId={project.id} />}
-          </div>
-        )}
+          )}
+          {canDelete && <ArchiveProjectButton projectId={project.id} />}
+        </div>
       </header>
 
       {project.description && (

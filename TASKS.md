@@ -17,7 +17,7 @@ Rule: finish and verify one phase before starting the next.
 | 6 | Files | Private bucket `project-files`, `lib/storage.ts`, upload button, 300s signed URLs | **code complete, unverified** | Build + lint clean. Adds migration `0011_storage.sql`. The riskiest phase to have written blind — see steps 12–16. |
 | 7 | Dashboard | KPI cards, charts, upcoming + overdue, recent activity | **code complete, unverified** | Build + lint clean. Charts are plain CSS, server-rendered, no charting library. Palette validated in both modes — see step 17. |
 | 8 | AI summaries | `lib/ai/*`, streaming route, caching by `input_hash` | **code complete, unverified** | Build + lint clean. Bundle scan confirms no key, prompt or SDK reference reaches the browser. Needs `ANTHROPIC_API_KEY` **and** a database to run. |
-| 9 | Word reports | `lib/reports/word.ts` with `docx`, download route | todo | Done when the `.docx` opens in Word with correct data |
+| 9 | Word reports | `lib/reports/word.ts` with `docx`, download route | **done (layout), route unverified** | `npm run report:preview` renders a real .docx from fixture data — valid OOXML, all sections present. The download route itself still needs a database. |
 | 10 | Polish | Empty/loading/error states, activity log view, responsive audit, README | todo | Done when `npm run build` and `npm run lint` are clean and it works on a phone |
 
 ## Decisions (settled — do not relitigate)
@@ -108,6 +108,17 @@ schema and `0008_expose_schema.sql` can both be dropped in favour of `public`.
 23. Re-run the bundle scan after any change to `lib/ai/`:
     `Get-ChildItem .next\static -Recurse -Include *.js | Select-String "ANTHROPIC_API_KEY","sk-ant-"`
     must find nothing.
+24. Phase 9: `npm run report:preview` after any change to `lib/reports/word.ts`,
+    and open the result. The fixture covers the awkward cases — overdue task,
+    over-budget line, unbudgeted spend — and the validator only checks that the
+    file is well-formed, not that it *looks* right.
+25. Download a report from a real project and confirm the figures match the
+    screen. Check a project with no milestones and no budget renders those
+    sections as "not recorded" rather than as empty tables.
+26. Confirm `?ai=0` produces a report with no executive summary or risks
+    section, and that a project downloads successfully when
+    `ANTHROPIC_API_KEY` is unset — the AI sections are best-effort and must
+    never be the reason a download fails.
 
 ## Open items
 
