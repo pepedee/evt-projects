@@ -33,10 +33,27 @@ export interface ProjectRow {
   task_open: number;
   task_overdue: number;
   task_blocked: number;
+  // Postgres numeric arrives as a string often enough that trusting it to be
+  // a number here would be a silent bug. Normalised in withHealth().
+  planned_total: number | string;
+  spent_total: number | string;
+  spent_unassigned: number | string;
 }
 
-/** A project with its computed health folded in, ready to render. */
-export type Project = ProjectRow & { health: Health };
+/**
+ * A project ready to render: health computed, money coerced to numbers.
+ */
+export type Project = Omit<
+  ProjectRow,
+  "planned_total" | "spent_total" | "spent_unassigned"
+> & {
+  health: Health;
+  planned_total: number;
+  spent_total: number;
+  spent_unassigned: number;
+  /** Positive means under budget, negative means over. */
+  variance: number;
+};
 
 export interface Milestone {
   id: string;
@@ -58,8 +75,25 @@ export interface ProjectFilters {
 
 const DEFAULT_PAGE_SIZE = 20;
 
+/** Postgres numeric may serialise as a string; never let one reach arithmetic. */
+export function toNumber(value: number | string | null | undefined): number {
+  if (value == null) return 0;
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
 function withHealth(row: ProjectRow): Project {
-  return { ...row, health: deriveHealth(row) };
+  const planned_total = toNumber(row.planned_total);
+  const spent_total = toNumber(row.spent_total);
+
+  return {
+    ...row,
+    health: deriveHealth(row),
+    planned_total,
+    spent_total,
+    spent_unassigned: toNumber(row.spent_unassigned),
+    variance: planned_total - spent_total,
+  };
 }
 
 export async function listProjects(filters: ProjectFilters = {}): Promise<{

@@ -4,6 +4,10 @@ import { Pencil } from "lucide-react";
 import { can, requireUser } from "@/lib/auth";
 import { getProject, listMilestones } from "@/lib/db/projects";
 import { listTasks } from "@/lib/db/tasks";
+import { listBudgetLines, listExpenses } from "@/lib/db/budgets";
+import { BudgetLines } from "@/components/budgets/budget-lines";
+import { ExpenseList } from "@/components/budgets/expense-list";
+import { formatMoney } from "@/lib/format";
 import { Card } from "@/components/ui/card";
 import {
   HealthBadge,
@@ -27,9 +31,11 @@ export default async function ProjectDetailPage({
   const project = await getProject(id);
   if (!project) notFound();
 
-  const [milestones, tasks] = await Promise.all([
+  const [milestones, tasks, budgetLines, expenses] = await Promise.all([
     listMilestones(id),
     listTasks({ projectId: id }),
+    listBudgetLines(id),
+    listExpenses(id),
   ]);
 
   const canEdit = can(user, "member");
@@ -93,6 +99,22 @@ export default async function ProjectDetailPage({
         <Stat label="Target date" value={formatDate(project.target_date)} />
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Stat
+          label="Budget planned"
+          value={formatMoney(project.planned_total, project.currency)}
+        />
+        <Stat
+          label="Spent"
+          value={formatMoney(project.spent_total, project.currency)}
+        />
+        <Stat
+          label="Variance"
+          value={formatMoney(project.variance, project.currency)}
+          tone={project.variance < 0 ? "danger" : undefined}
+        />
+      </div>
+
       <Card
         title="Milestones"
         description="The checkpoints this project is measured against."
@@ -112,6 +134,31 @@ export default async function ProjectDetailPage({
         <TaskList
           projectId={project.id}
           tasks={tasks}
+          canEdit={canEdit}
+          canDelete={canDelete}
+        />
+      </Card>
+
+      <Card
+        title="Budget"
+        description={`Planned against actual, all in ${project.currency}.`}
+      >
+        <BudgetLines
+          projectId={project.id}
+          currency={project.currency}
+          lines={budgetLines}
+          spentUnassigned={project.spent_unassigned}
+          canEdit={canEdit}
+          canDelete={canDelete}
+        />
+      </Card>
+
+      <Card title="Expenses" description="What has actually been spent.">
+        <ExpenseList
+          projectId={project.id}
+          currency={project.currency}
+          expenses={expenses}
+          lines={budgetLines}
           canEdit={canEdit}
           canDelete={canDelete}
         />

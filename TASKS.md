@@ -13,7 +13,7 @@ Rule: finish and verify one phase before starting the next.
 | 2 | Database | Migrations 0000–0008: `tracker` schema, workspaces + members, domain tables, RLS helpers + policies, expose_schema (APPEND), signup trigger | **blocked** | SQL is written and committed. Cannot apply: the Supabase project no longer exists (see Blockers). |
 | 3 | Auth + shell | Login/register, `lib/auth.ts`, protected `(app)` layout, sidebar, topbar, dark mode | **code complete, unverified** | Build + lint clean. `/login` and `/register` render; `/dashboard` correctly bounces to `/login`. The signed-in half (workspace resolution, sidebar, sign-out) cannot be exercised until the database is back. |
 | 4 | Projects + tasks | `lib/db/projects.ts`, `tasks.ts`, list + detail + kanban, milestones, server-derived progress and health | **code complete, unverified** | Build + lint clean, all 13 routes register, guards hold. No query, trigger or RLS policy has ever run. Adds migration `0009_project_overview.sql`. |
-| 5 | Budgets | Budget lines, expenses, planned-vs-actual rollups | todo | Done when variance is correct on project detail |
+| 5 | Budgets | Budget lines, expenses, planned-vs-actual rollups | **code complete, unverified** | Build + lint clean. Adds migration `0010_budget_rollup.sql`. Every total comes from a SQL view, never from the browser. |
 | 6 | Files | Private bucket `project-files`, `lib/storage.ts`, upload button, 300s signed URLs | todo | Done when upload/download/delete work and raw URLs 403 |
 | 7 | Dashboard | KPI cards, charts, upcoming + overdue, recent activity | todo | Done when the numbers match the underlying tables |
 | 8 | AI summaries | `lib/ai/*`, streaming route, caching by `input_hash` | todo | Done when a summary renders and the second call hits cache |
@@ -65,6 +65,17 @@ schema and `0008_expose_schema.sql` can both be dropped in favour of `public`.
 7. Confirm `tracker.project_overview` respects RLS. It is declared
    `security_invoker = true`; without that a view hands every workspace's rows
    to every user. Query it as the second account and expect zero rows.
+8. Phase 5: add two budget lines and several expenses, then check the totals by
+   hand against the rows. The views aggregate each child table in its own
+   subquery before joining — if that were ever flattened into direct joins,
+   tasks and expenses would multiply against each other and every sum would be
+   inflated. A project with both tasks and expenses is the case that catches it.
+9. Record an expense with no budget line and confirm it shows as *Unbudgeted*
+   and lands in `spent_unassigned`, not silently in a line.
+10. Delete a budget line that has expenses charged to it. The expenses must
+    survive as unassigned (FK is `on delete set null`), not disappear.
+11. Confirm the expense/budget-line project guard fires: charging an expense to
+    a line from another project must be refused by the trigger.
 
 ## Open items
 
