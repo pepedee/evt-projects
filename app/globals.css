@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+/* Dark mode is driven by a class on <html>, set by the theme toggle, so the
+   user can override their operating system preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #f5f6f8;
+  --surface: #ffffff;
+  --surface-2: #f9fafb;
+  --foreground: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --primary: #4338ca;
+  --primary-fg: #ffffff;
+  --ring: #6366f1;
+
+  /* Semantic status tokens (UI chrome, not a chart palette). */
+  --success: #15803d;
+  --warning: #b45309;
+  --danger: #b91c1c;
+
+  /* Chart palette. Carried over from visa-agency, where it was validated for
+     colour-vision deficiency and 3:1 contrast against these surfaces.
+     Do not add or substitute hues by eye — see AGENTS.md. */
+  --chart-1: #2a78d6;
+  --chart-2: #008300;
+  --chart-grid: #e1e0d9;
+  --chart-axis: #898781;
+}
+
+.dark {
+  --background: #0b0f14;
+  --surface: #131920;
+  --surface-2: #1a2128;
+  --foreground: #e6edf3;
+  --muted: #94a3b8;
+  --border: #263039;
+  --primary: #818cf8;
+  --primary-fg: #10102b;
+  --ring: #818cf8;
+
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+
+  /* Same two hues re-stepped for the dark surface, validated as a set. */
+  --chart-1: #3987e5;
+  --chart-2: #008300;
+  --chart-grid: #2c2c2a;
+  --chart-axis: #898781;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Focus ring that stays visible in both themes. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Currency fields read better without spinners. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Printing: drop the app chrome so reports use the whole page. */
+@media print {
+  aside,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #ffffff;
+    color: #000000;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  section,
+  table {
+    break-inside: avoid;
+  }
+  @page {
+    margin: 14mm;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
