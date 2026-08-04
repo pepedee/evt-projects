@@ -9,8 +9,8 @@ Rule: finish and verify one phase before starting the next.
 
 | # | Phase | Scope | Status | Notes |
 |---|---|---|---|---|
-| 1 | Scaffold | Next 16 + Tailwind v4, `proxy.ts`, both Supabase clients, migration runner, port 3006, docs | in-progress | Done when `npm run dev` serves on 3006 |
-| 2 | Database | Migrations 0000–0005: `tracker` schema, workspaces + members, domain tables, RLS helpers + policies, expose_schema (APPEND), signup trigger | todo | Done when `npm run migrate -- --all` is clean **and** visa-agency (3003) + bakery-pos (3005) still load |
+| 1 | Scaffold | Next 16 + Tailwind v4, `proxy.ts`, both Supabase clients, migration runner, port 3006, docs | **done** | Verified: `/` → `/login` via proxy, build + lint clean, 0 npm vulnerabilities |
+| 2 | Database | Migrations 0000–0005: `tracker` schema, workspaces + members, domain tables, RLS helpers + policies, expose_schema (APPEND), signup trigger | in-progress | Done when `npm run migrate -- --all` is clean **and** visa-agency (3003) + bakery-pos (3005) still load |
 | 3 | Auth + shell | Login/register, `lib/auth.ts`, protected `(app)` layout, sidebar, topbar, dark mode | todo | Done when signup auto-creates a workspace and lands on the dashboard |
 | 4 | Projects + tasks | `lib/db/projects.ts`, `tasks.ts`, list + detail + kanban, milestones, server-derived progress and health | todo | Done when CRUD works and a second account with no membership sees nothing |
 | 5 | Budgets | Budget lines, expenses, planned-vs-actual rollups | todo | Done when variance is correct on project detail |
@@ -29,6 +29,7 @@ Rule: finish and verify one phase before starting the next.
 | AI provider | **Anthropic Claude API** (`@anthropic-ai/sdk`) | `claude-sonnet-5` for narrative summaries, `claude-haiku-4-5-20251001` for the frequent risk scan. |
 | Word reports | **Generated from code with `docx`** | Full control, no template file to keep in sync. `Unit Report Template (editable).docx` is a layout reference only. |
 | Multi-user | **`workspace_id` + `workspace_members` from day one** | Single user today is one workspace with one member. Adding people stays a data change. |
+| Next version | **16.3.0**, not the siblings' 16.2.10 | 16.2.10 carries nine high-severity advisories (SSRF in server actions, cache confusion, unauthenticated server-function disclosure). The conventions that matter — `proxy.ts`, `--webpack` — are identical. |
 
 ## Open items
 
