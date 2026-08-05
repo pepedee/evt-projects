@@ -14,7 +14,17 @@ export function Card({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-2xl border border-border bg-surface", className)}>
+    // min-w-0 matters whenever a Card is a grid or flex child. Both default
+    // those children to min-width:auto, which refuses to shrink below the
+    // content's min-content width — so one long word or an unbreakable figure
+    // inside a card widens the whole track and scrolls the page sideways on a
+    // phone. Harmless on a Card in normal flow.
+    <section
+      className={cn(
+        "min-w-0 rounded-2xl border border-border bg-surface",
+        className,
+      )}
+    >
       {(title || action) && (
         <header className="flex flex-wrap items-start gap-3 border-b border-border px-5 py-4">
           <div className="min-w-0 flex-1">

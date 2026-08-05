@@ -119,8 +119,13 @@ schema and `0008_expose_schema.sql` can both be dropped in favour of `public`.
     section, and that a project downloads successfully when
     `ANTHROPIC_API_KEY` is unset — the AI sections are best-effort and must
     never be the reason a download fails.
-27. Phase 10: the responsive audit only covered `/login`, `/register` and the
-    404 — everything behind the login needs a session. Re-run it on the
+27. Phase 10: `/demo` renders the real components from fixture data with no
+    database, so the dashboard, project detail, budget table and kanban can all
+    be reviewed at 375 / 768 / 1280 without signing in. **This already caught a
+    real bug** — `Card` had no `min-w-0`, so as a grid child it refused to
+    shrink and the dashboard scrolled sideways at 375px. Re-check `/demo` after
+    any layout change. The remaining gap is the signed-in shell (sidebar,
+    drawer, topbar), which the demo does not exercise. Re-run it on the
     dashboard, project detail, the kanban board and the budget tables at
     375 / 768 / 1280, in both themes. The tables are the likely offenders:
     each sits in an `overflow-x-auto` wrapper, so the table should scroll on

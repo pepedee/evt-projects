@@ -5,11 +5,16 @@ import { NextResponse, type NextRequest } from "next/server";
 const PUBLIC_PATHS = ["/login", "/register"];
 
 /**
- * Auth machinery (sign-out, callbacks). Always allowed and never redirected —
- * bouncing a signed-in user away from /auth/signout would make signing out
- * impossible.
+ * Always allowed, never redirected in either direction.
+ *
+ * `/auth` is auth machinery — bouncing a signed-in user away from
+ * /auth/signout would make signing out impossible.
+ *
+ * `/demo` is a static UI showcase built from fixture data. It touches no
+ * database and holds no real record, so it is safe to leave open. Delete the
+ * route and this entry together when it has served its purpose.
  */
-const AUTH_ROUTES = ["/auth"];
+const ALWAYS_ALLOWED = ["/auth", "/demo"];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -41,7 +46,7 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  if (AUTH_ROUTES.some((path) => pathname.startsWith(path))) {
+  if (ALWAYS_ALLOWED.some((path) => pathname.startsWith(path))) {
     return supabaseResponse;
   }
 

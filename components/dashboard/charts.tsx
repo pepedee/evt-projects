@@ -34,9 +34,13 @@ export function ProgressChart({ projects }: { projects: Project[] }) {
       {projects.map((project) => (
         <li key={project.id}>
           <div className="mb-1.5 flex items-baseline justify-between gap-3">
+            {/* min-w-0 is what makes `truncate` work: a flex child defaults
+                to min-width:auto and refuses to shrink below its own text, so
+                without it a long project name widens the row and the whole
+                page scrolls sideways on a phone. */}
             <Link
               href={`/projects/${project.id}`}
-              className="truncate text-sm hover:underline"
+              className="min-w-0 flex-1 truncate text-sm hover:underline"
             >
               {project.name}
             </Link>
@@ -104,7 +108,11 @@ export function BudgetMeters({ projects }: { projects: Project[] }) {
             <div className="mb-1.5 flex items-baseline justify-between gap-3">
               <Link
                 href={`/projects/${project.id}`}
-                className="truncate text-sm hover:underline"
+                // min-w-0 is what makes `truncate` work here: a flex child
+              // defaults to min-width:auto and refuses to shrink below its
+              // text, so without it a long project name widens the whole row
+              // and the page scrolls sideways on a phone.
+              className="min-w-0 flex-1 truncate text-sm hover:underline"
               >
                 {project.name}
               </Link>
