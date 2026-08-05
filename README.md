@@ -3,9 +3,13 @@
 Track projects end to end — tasks, milestones, budgets, files — with AI-written
 status summaries and generated Word reports.
 
-Single user today, multi-user ready: everything is scoped by `workspace_id` and
-guarded by `workspace_members`, so adding teammates is an insert, not a
-migration.
+> ### ⚠️ This app has no authentication
+>
+> There is no sign-in. Everyone who can reach the app shares one workspace and
+> can read and write everything in it — projects, budgets, client names and
+> uploaded documents. That is fine on localhost or a private network. **Do not
+> put it on a public URL** without restoring authentication (change
+> `lib/auth.ts`, revert `0012_open_access.sql`).
 
 ## Stack
 
@@ -24,7 +28,8 @@ Copy `.env.local.example` to `.env.local` and fill in:
 | Variable | Required | Notes |
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | yes | Shared Supabase project |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | Public by design |
+| `SUPABASE_SERVICE_ROLE_KEY` | yes | **Server only.** Bypasses RLS — never prefix `NEXT_PUBLIC_`, never commit |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | no | Only needed if you restore authentication |
 | `ANTHROPIC_API_KEY` | no | Without it, AI summaries are hidden and reports are generated without their prose sections |
 | `ANTHROPIC_MODEL` | no | Defaults to `claude-opus-5` |
 
@@ -63,13 +68,16 @@ npm run dev
 | `/tasks` | Cross-project kanban and list |
 | `/budgets` | Planned against actual, per project |
 | `/files` | Private storage with short-lived signed URLs |
-| `/settings` | Workspace, members, and the append-only activity log |
+| `/settings` | Workspace, access model, and the append-only activity log |
+| `/demo` | UI showcase from fixture data — needs no database |
 
 ## Architecture notes
 
 - **A screen never queries the database.** `app/**/page.tsx` → `lib/db/*` → Supabase.
-- **RLS is the security boundary.** `requireRole()` exists to give a readable
-  error, not to enforce access.
+- **There is no security boundary inside the app.** With authentication removed
+  the server uses the service-role key, which bypasses RLS; reachability is the
+  only gate. `requireRole()` is kept as a marker of which operations were
+  privileged, so auth can be restored from one file.
 - **Derived values are computed server-side.** `progress_pct` is maintained by a
   database trigger; health is derived at read time because it changes as dates
   pass; budget totals come from SQL views.

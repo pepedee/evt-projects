@@ -1,18 +1,10 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { listActivity, listMembers } from "@/lib/db/workspace";
+import { listActivity } from "@/lib/db/workspace";
 import { Badge, Card, EmptyState } from "@/components/ui/card";
-import { formatDate, formatDateTime } from "@/lib/format";
-import { ROLE_LABEL, type Role } from "@/lib/types";
+import { formatDateTime } from "@/lib/format";
 
 export const metadata = { title: "Settings · AI Project Tracker" };
-
-const ROLE_TONE: Record<Role, "primary" | "neutral"> = {
-  owner: "primary",
-  admin: "primary",
-  member: "neutral",
-  viewer: "neutral",
-};
 
 export default async function SettingsPage({
   searchParams,
@@ -25,10 +17,7 @@ export default async function SettingsPage({
   const pageParam = Array.isArray(params.page) ? params.page[0] : params.page;
   const page = Number(pageParam ?? 1) || 1;
 
-  const [members, activity] = await Promise.all([
-    listMembers(),
-    listActivity(page),
-  ]);
+  const activity = await listActivity(page);
 
   return (
     <div className="space-y-6">
@@ -42,42 +31,22 @@ export default async function SettingsPage({
       <Card title="Workspace">
         <dl className="divide-y divide-border">
           <Row label="Name" value={user.workspaceName} />
-          <Row label="Signed in as" value={user.email} />
-          <Row label="Your role" value={ROLE_LABEL[user.role]} />
+          <Row label="Access" value="Open — no sign-in required" />
         </dl>
       </Card>
 
-      <Card
-        title="People"
-        description="One member today. Inviting others is a data change, not a migration — the workspace model is already in place."
-      >
-        {members.length === 0 ? (
-          <EmptyState message="No members found." />
-        ) : (
-          <ul className="divide-y divide-border">
-            {members.map((member) => (
-              <li
-                key={member.user_id}
-                className="flex flex-wrap items-center gap-3 px-5 py-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">
-                    {member.full_name ?? "Unnamed"}
-                    {member.user_id === user.id && (
-                      <span className="ml-2 text-xs text-muted">(you)</span>
-                    )}
-                  </p>
-                  <p className="text-xs text-muted">
-                    Joined {formatDate(member.created_at)}
-                  </p>
-                </div>
-                <Badge tone={ROLE_TONE[member.role]}>
-                  {ROLE_LABEL[member.role]}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        )}
+      <Card title="Access">
+        <div className="space-y-2 px-5 py-4 text-sm">
+          <p>
+            This app has no authentication. Everyone who can reach it shares one
+            workspace and has full rights over everything in it.
+          </p>
+          <p className="text-muted">
+            There is no per-person record, so the activity log below shows what
+            changed but not who changed it. Keep the deployment private — on a
+            public URL, everything here is public.
+          </p>
+        </div>
       </Card>
 
       <Card

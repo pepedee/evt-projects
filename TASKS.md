@@ -24,7 +24,7 @@ Rule: finish and verify one phase before starting the next.
 
 | Decision | Choice | Why |
 |---|---|---|
-| Auth | **Supabase Auth**, not NextAuth | RLS policies key off `auth.uid()`. NextAuth would issue its own session and push all security into app code. Kept behind `lib/auth.ts` so a swap touches one file. |
+| Auth | ~~Supabase Auth~~ → **none, open access** (changed 2026-08-05 at the owner's request) | Sign-in and sign-up removed; one shared workspace; server uses the service-role key, which bypasses RLS. The only boundary is who can reach the app. Restoring auth means reverting `0012_open_access.sql` and `lib/auth.ts`. See the warning block in AGENTS.md. |
 | Database | **Shared Supabase project, new `tracker` schema** | Matches visa-agency (`agency`) and bakery-pos (`bakery`). Gets Storage and Auth for free. |
 | AI provider | **Anthropic Claude API** (`@anthropic-ai/sdk`) | Model defaults to `claude-opus-5`, overridable with `ANTHROPIC_MODEL`. Cost is controlled with `effort` (`medium` for narrative kinds, `high` for the risk scan) rather than by silently picking a smaller model. |
 | Word reports | **Generated from code with `docx`** | Full control, no template file to keep in sync. `Unit Report Template (editable).docx` is a layout reference only. |
@@ -54,10 +54,13 @@ schema and `0008_expose_schema.sql` can both be dropped in favour of `public`.
    sidebar shows it with role Owner.
 3. Sign out from the topbar — confirm it lands on `/login` and does not bounce
    back (`AUTH_ROUTES` in `lib/supabase/middleware.ts` exists for exactly this).
-4. Delete the membership row by hand and reload: `ensure_workspace()` should
-   silently rebuild it.
-5. Sign in as a second account with no membership and confirm every list is
-   empty and every write is refused by RLS, not merely hidden in the UI.
+4. ~~Delete the membership row by hand and reload.~~ Obsolete — no signup.
+5. ~~Sign in as a second account and confirm RLS refuses it.~~ Obsolete: RLS is
+   bypassed by the service-role key. **Replaced by:** confirm the service key
+   never reaches the browser —
+   `Get-ChildItem .next\static -Recurse -Include *.js | Select-String "service_role","SUPABASE_SERVICE_ROLE_KEY"`
+   must find nothing. This is now the single most important check in this file:
+   with no login, that key leaking is the whole security model gone.
 6. Phase 4: create a project, add tasks, mark one done — `progress_pct` must
    move on its own (the trigger computes it; the app never writes it). Add an
    overdue task and confirm health flips to at risk, then off track past the

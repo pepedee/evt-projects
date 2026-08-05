@@ -1,58 +1,50 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Server-side Supabase client scoped to the `tracker` schema.
- * Runs as the signed-in user, so every query is still filtered by RLS.
+ * Supabase clients. SERVER ONLY.
+ *
+ * The app has no authentication (see 0012_open_access.sql), so there is no
+ * user session to carry and no cookies to read. Instead the server connects
+ * with the service-role key.
+ *
+ * That key bypasses Row Level Security and must never reach the browser.
+ * Nothing under lib/db/, lib/ai/ or lib/reports/ may be imported from a client
+ * component — every database read and write goes through a server component,
+ * a server action, or a route handler.
+ *
+ * The practical consequence of removing auth: the app itself is the only gate.
+ * Anyone who can reach it can read and write everything. Keep the deployment
+ * private.
  */
-export async function createClient() {
-  const cookieStore = await cookies();
 
-  return createServerClient(
+function serviceKey(): string {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY is not set. Add it to .env.local — server-side only, never prefixed NEXT_PUBLIC_.",
+    );
+  }
+  return key;
+}
+
+const options = {
+  auth: { persistSession: false, autoRefreshToken: false },
+};
+
+/** Client scoped to the `tracker` schema. */
+export async function createClient() {
+  return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      db: { schema: "tracker" },
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
-            );
-          } catch {
-            // Called from a Server Component; proxy.ts refreshes the session.
-          }
-        },
-      },
-    },
+    serviceKey(),
+    { ...options, db: { schema: "tracker" } },
   );
 }
 
-/** Client for the default `public` schema (Supabase Auth helpers, storage). */
+/** Client on the default `public` schema — used for Storage. */
 export async function createAuthClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
+  return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
-            );
-          } catch {
-            /* refreshed by proxy.ts */
-          }
-        },
-      },
-    },
+    serviceKey(),
+    options,
   );
 }

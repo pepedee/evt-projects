@@ -46,18 +46,40 @@ all differ from your training data. Read the relevant guide in
 - **Validate every input with zod on the server.** The browser is never trusted.
 - **Never trust browser-sent money or progress.** `planned_amount` totals,
   `progress_pct` and `health` are recomputed server-side from source rows.
-- Check access with `requireRole()`, and let RLS in the database be the real
-  gate. Never branch on a role name inside a screen.
 - **Nothing is hard deleted.** `projects` and `tasks` use `deleted_at`.
 - Money is `numeric(14,2)` plus an explicit `currency` column. Never a float.
 
-## Multi-user seam
+## ⚠️ There is no authentication
 
-Everything is scoped by `workspace_id`, and access comes from
-`workspace_members(workspace_id, user_id, role)` where role is
-`owner | admin | member | viewer`. Today that is one workspace with one member.
-Adding teammates later must stay a data change — if you find yourself needing a
-schema migration to support a second user, the design has drifted.
+This app is **open**. There is no sign-in, no sign-up, and no per-person
+identity. Everyone who can reach it shares one workspace and has full rights
+over everything in it. See `0012_open_access.sql`.
+
+What that means when working here:
+
+- **The server connects with `SUPABASE_SERVICE_ROLE_KEY`, which bypasses RLS.**
+  The policies in `0006_rls.sql` still exist but are no longer the gate. The
+  only real boundary is who can reach the app.
+- **That key must never reach the browser.** Nothing under `lib/db/`, `lib/ai/`
+  or `lib/reports/`, and nothing importing `lib/supabase/server.ts`, may be
+  imported from a client component. Every read and write goes through a server
+  component, a server action, or a route handler. File uploads go through
+  `/api/upload` for exactly this reason — the browser cannot hold the key.
+- **`requireRole()` and `can()` always succeed.** They are kept at every call
+  site deliberately: they document which operations were privileged, so
+  restoring authentication means changing `lib/auth.ts` and little else.
+- **`export const dynamic = "force-dynamic"` in `app/(app)/layout.tsx` is
+  load-bearing.** With no cookies to read, Next would otherwise prerender these
+  pages at build time and serve a frozen snapshot of the database.
+- **Keep the deployment private.** On a public URL, every project, budget,
+  client name and uploaded document is public.
+
+## Multi-user seam (dormant)
+
+Everything is still scoped by `workspace_id`, and `workspace_members` still
+exists, so authentication can be restored without a schema rewrite. Today one
+fixed workspace is used, defined in `0012_open_access.sql` and mirrored by
+`SHARED_WORKSPACE_ID` in `lib/auth.ts` — the two must match.
 
 ## AI rules
 
