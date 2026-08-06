@@ -53,7 +53,7 @@ export default async function SettingsPage({
 
       <Card
         title="People"
-        description="Invite by email below. No email is sent — whoever registers with that exact address lands in this workspace instead of getting their own."
+        description="Invite by email below. They'll get a real email with a link to set a password and join this workspace directly."
       >
         {members.length === 0 ? (
           <EmptyState message="No members found." />

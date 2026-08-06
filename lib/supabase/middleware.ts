@@ -13,9 +13,14 @@ const PUBLIC_PATHS = ["/login", "/register", "/demo"];
 /**
  * Auth machinery (sign-out, callbacks). Always allowed and never redirected —
  * bouncing a signed-in user away from /auth/signout would make signing out
- * impossible.
+ * impossible. /accept-invite belongs here too: an invite link's tokens live
+ * in the URL hash, which the server never sees, so this page must be
+ * reachable before a session exists (to let the browser client parse the
+ * hash) and must stay reachable after one exists (so the "already signed
+ * in, bounce away from a public path" rule below doesn't cut the visitor
+ * off before they've set a password).
  */
-const AUTH_ROUTES = ["/auth"];
+const AUTH_ROUTES = ["/auth", "/accept-invite"];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });

@@ -48,8 +48,10 @@ all differ from your training data. Read the relevant guide in
   `proxy()` + `config.matcher`, not `middleware.ts`). It delegates to
   `lib/supabase/middleware.ts`'s `updateSession()`, which redirects
   unauthenticated requests to `/login` — except `PUBLIC_PATHS`
-  (`/login`, `/register`, `/demo`) and `AUTH_ROUTES` (`/auth/*`, so signing out
-  while signed in doesn't redirect back).
+  (`/login`, `/register`, `/demo`) and `AUTH_ROUTES` (`/auth/*` and
+  `/accept-invite`, exempt from redirects in *both* directions: signing out
+  while signed in must not redirect back, and an invite link must stay
+  reachable whether or not a session exists yet — see "Adding people" below).
 - Always build/dev with `--webpack` (scripts already do this); Turbopack is not used.
 - Dev server: port 3006 (`dev-server.cmd` or the root `.claude/launch.json`).
   3000–3005 belong to sibling apps.
@@ -103,10 +105,15 @@ normal email/password flow through `@supabase/ssr`.
   `0006_rls.sql` is the real security boundary, not application code.
   `requireRole()` is a courtesy that returns a clean error message before RLS
   would reject the write with a less friendly one.
-- `SUPABASE_SERVICE_ROLE_KEY` is no longer needed by the running app. It's
-  still useful for one-off admin scripts (e.g. `supabase.auth.admin.*` to
-  create/delete test users without email confirmation) but must never be
-  imported by anything under `app/` or `lib/` that a request path touches.
+- `SUPABASE_SERVICE_ROLE_KEY` mostly isn't needed by the running app, and the
+  rule is still: don't import it into anything a request path touches. There
+  is exactly **one** deliberate exception — `lib/supabase/admin.ts`, used only
+  by `inviteMember` (below) to call `auth.admin.inviteUserByEmail`, which
+  genuinely cannot be done any other way. It's also still useful for one-off
+  admin scripts (e.g. `supabase.auth.admin.*` to create/delete test users
+  without email confirmation). Do not add a second request-path caller
+  without a similarly hard requirement — grep for `lib/supabase/admin` to see
+  every place it's used.
 - **Workspace isolation is real and enforced by RLS**, not just documented —
   verified 2026-08-05 with two separate accounts: a project created by one is
   invisible to the other (`0 projects` reading it back).
@@ -118,11 +125,30 @@ normal email/password flow through `@supabase/ssr`.
   pending invites; `provision_workspace()` checks it before making a brand
   new workspace for a signup, so a matching email lands the new account
   straight into the inviter's workspace at the invited role instead of an
-  empty one of its own. This only works for people who haven't registered
+  empty one of its own. `inviteMember` (`app/(app)/settings/actions.ts`)
+  inserts that row *and* calls `auth.admin.inviteUserByEmail`, which creates
+  the `auth.users` row immediately (so the trigger honors the invite right
+  away, before the email is even opened) and sends Supabase's own invite
+  email. `email_exists` from that call means the address is already
+  registered elsewhere — the pending-invite row is deleted rather than left
+  to rot, since `provision_workspace()` only fires for a brand new signup and
+  would never consume it. This only works for people who haven't registered
   yet — `getSessionUser()` in `lib/auth.ts` picks a single membership row
   (oldest first), so there is no workspace switcher and no supported way for
   an already-registered account to join a second workspace. Build one before
   claiming that case works.
+- **The invite email's link does not go through `proxy.ts`'s `?code=`
+  exchange.** Signup/password-reset links use the PKCE code flow and land as
+  a query param the server can read; Supabase's `invite` verify type instead
+  redirects with the tokens in the URL **hash**
+  (`/accept-invite#access_token=...`), which browsers never send to a server
+  at all. `app/(auth)/accept-invite/accept-invite-form.tsx` is a client
+  component for exactly this reason — `createAuthClient()`'s
+  `detectSessionInUrl` parses the hash and turns it into a session on the
+  browser side, then the page prompts for a password
+  (`auth.updateUser({ password })`). Confirmed empirically against this
+  project with `auth.admin.generateLink` before building against it — don't
+  assume the shape of an auth email link, check it.
 
 ## AI rules
 
