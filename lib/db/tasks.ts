@@ -17,7 +17,7 @@ export interface TaskFilters {
 }
 
 const TASK_COLUMNS =
-  "id, project_id, milestone_id, title, description, status, priority, " +
+  "id, project_id, milestone_id, title, description, status, priority, kind, " +
   "assignee_id, estimate_hours, spent_hours, start_date, due_date, " +
   "completed_at, sort_order, created_at";
 

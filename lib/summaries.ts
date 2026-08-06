@@ -11,13 +11,15 @@ export type SummaryKind =
   | "project_status"
   | "risk_scan"
   | "standup"
-  | "report_intro";
+  | "report_intro"
+  | "handover_summary";
 
 export const SUMMARY_KINDS: SummaryKind[] = [
   "project_status",
   "risk_scan",
   "standup",
   "report_intro",
+  "handover_summary",
 ];
 
 export const SUMMARY_LABEL: Record<SummaryKind, string> = {
@@ -25,6 +27,7 @@ export const SUMMARY_LABEL: Record<SummaryKind, string> = {
   risk_scan: "Risk scan",
   standup: "Standup update",
   report_intro: "Executive summary",
+  handover_summary: "Handover summary",
 };
 
 export function isSummaryKind(value: unknown): value is SummaryKind {

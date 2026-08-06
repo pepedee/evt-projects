@@ -1,28 +1,31 @@
-import {
-  AlignmentType,
-  Document,
-  HeadingLevel,
-  Packer,
-  Paragraph,
-  Table,
-  TableCell,
-  TableRow,
-  TextRun,
-  WidthType,
-} from "docx";
+import { Document, Packer, Paragraph, Table } from "docx";
 import { formatDate, formatMoney } from "@/lib/format";
 import { HEALTH_LABEL } from "@/lib/health";
 import { TASK_STATUS_LABEL, isOverdue, type TaskWithProject } from "@/lib/tasks";
 import type { BudgetLine } from "@/lib/db/budgets";
 import type { Milestone, Project } from "@/lib/db/projects";
+import {
+  coverPage,
+  h1,
+  h2,
+  para,
+  prose,
+  table,
+  reportFileName as sharedReportFileName,
+} from "@/lib/reports/shared";
 
 /**
- * Builds the project report as a Word document.
+ * Builds the project status report as a Word document.
  *
  * Generated from code rather than filled into a template: there is no .docx
  * asset to keep in sync, and the section list is visible right here.
  * Everything printed comes from the caller's data — nothing is fetched or
  * invented in this file, which keeps it pure and easy to eyeball.
+ *
+ * This is the "how's it going" report. For the end-of-project completion
+ * document (as-built drawings, certificates, defects, warranties, O&M
+ * manuals, photos), see lib/reports/handover.ts — a different document for a
+ * different reader, not a variant of this one.
  */
 
 export interface ReportData {
@@ -38,82 +41,13 @@ export interface ReportData {
   generatedAt: Date;
 }
 
-const SPACING = { before: 240, after: 120 };
-
-function h1(text: string): Paragraph {
-  return new Paragraph({ text, heading: HeadingLevel.HEADING_1, spacing: SPACING });
-}
-
-function h2(text: string): Paragraph {
-  return new Paragraph({ text, heading: HeadingLevel.HEADING_2, spacing: SPACING });
-}
-
-function para(text: string, options: { italics?: boolean; bold?: boolean } = {}) {
-  return new Paragraph({
-    spacing: { after: 120 },
-    children: [new TextRun({ text, italics: options.italics, bold: options.bold })],
-  });
-}
-
-/** Model prose arrives as plain text; keep its paragraph breaks. */
-function prose(text: string): Paragraph[] {
-  const blocks = text
-    .split(/\n{2,}/)
-    .map((block) => block.replace(/\s*\n\s*/g, " ").trim())
-    .filter(Boolean);
-
-  return blocks.length > 0 ? blocks.map((block) => para(block)) : [para("—")];
-}
-
-function cell(text: string, bold = false): TableCell {
-  return new TableCell({
-    children: [
-      new Paragraph({ children: [new TextRun({ text: text || "—", bold })] }),
-    ],
-  });
-}
-
-function table(headers: string[], rows: string[][]): Table {
-  return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [
-      new TableRow({ children: headers.map((h) => cell(h, true)) }),
-      ...rows.map((row) => new TableRow({ children: row.map((v) => cell(v)) })),
-    ],
-  });
-}
-
 export function reportFileName(project: Project, at: Date): string {
-  const stamp = at.toISOString().slice(0, 10);
-  const base = (project.code || project.name)
-    .replace(/[^A-Za-z0-9._-]/g, "_")
-    .slice(0, 60);
-  return `${base}_report_${stamp}.docx`;
+  return sharedReportFileName(project, "report", at);
 }
 
 export function buildProjectReport(data: ReportData): Document {
   const { project } = data;
-  const children: (Paragraph | Table)[] = [];
-
-  // ---------------------------------------------------------------- cover
-  children.push(
-    new Paragraph({
-      spacing: { after: 60 },
-      alignment: AlignmentType.CENTER,
-      children: [new TextRun({ text: project.name, bold: true, size: 40 })],
-    }),
-    new Paragraph({
-      spacing: { after: 360 },
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: [project.code, project.client_name].filter(Boolean).join(" · ") ||
-            "Project report",
-          italics: true,
-        }),
-      ],
-    }),
-  );
+  const children: (Paragraph | Table)[] = [...coverPage(project)];
 
   // -------------------------------------------------------------- summary
   if (data.executiveSummary) {

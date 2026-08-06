@@ -79,6 +79,13 @@ export default async function ProjectDetailPage({
             <FileDown className="size-4" />
             Word report
           </a>
+          <a
+            href={`/api/reports/handover?projectId=${project.id}`}
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium transition hover:bg-surface-2"
+          >
+            <FileDown className="size-4" />
+            Handover report
+          </a>
           {canEdit && (
             <Link
               href={`/projects/${project.id}/edit`}

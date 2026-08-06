@@ -5,7 +5,7 @@ import { Download, FileText, Trash2 } from "lucide-react";
 import { deleteDocument, getDocumentUrl } from "@/app/(app)/files/actions";
 import { Notice } from "@/components/ui/form";
 import { EmptyState, Badge } from "@/components/ui/card";
-import { formatBytes } from "@/lib/storage";
+import { formatBytes, DOCUMENT_CATEGORY_LABEL } from "@/lib/storage";
 import { formatDateTime } from "@/lib/format";
 import type { DocumentRow } from "@/lib/db/documents";
 
@@ -60,6 +60,7 @@ export function DocumentList({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <p className="truncate text-sm font-medium">{doc.file_name}</p>
+                <Badge>{DOCUMENT_CATEGORY_LABEL[doc.category]}</Badge>
                 {doc.version > 1 && <Badge>v{doc.version}</Badge>}
               </div>
               <p className="truncate text-xs text-muted">

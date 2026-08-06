@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import type { DocumentCategory } from "@/lib/storage";
 
 export interface DocumentRow {
   id: string;
@@ -12,6 +13,7 @@ export interface DocumentRow {
   version: number;
   replaces_id: string | null;
   description: string | null;
+  category: DocumentCategory;
   uploaded_by: string | null;
   created_at: string;
   projects: { name: string } | null;
@@ -19,11 +21,12 @@ export interface DocumentRow {
 
 const SELECT =
   "id, workspace_id, project_id, task_id, file_name, storage_path, mime_type, " +
-  "size_bytes, version, replaces_id, description, uploaded_by, created_at, " +
+  "size_bytes, version, replaces_id, description, category, uploaded_by, created_at, " +
   "projects(name)";
 
 export async function listDocuments(filters: {
   projectId?: string;
+  category?: DocumentCategory;
   search?: string;
 } = {}): Promise<DocumentRow[]> {
   const db = await createClient();
@@ -31,6 +34,7 @@ export async function listDocuments(filters: {
   let query = db.from("documents").select(SELECT);
 
   if (filters.projectId) query = query.eq("project_id", filters.projectId);
+  if (filters.category) query = query.eq("category", filters.category);
   if (filters.search?.trim()) {
     query = query.ilike("file_name", `%${filters.search.trim()}%`);
   }

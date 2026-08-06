@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { createTask, deleteTask, setTaskStatus } from "@/app/(app)/tasks/actions";
 import { Button, Input, Notice, Select } from "@/components/ui/form";
-import { EmptyState } from "@/components/ui/card";
+import { EmptyState, Badge } from "@/components/ui/card";
 import { PriorityBadge } from "@/components/shared/status-badge";
 import { isOverdue, type TaskWithProject } from "@/lib/tasks";
 import { formatRelativeDays } from "@/lib/format";
@@ -30,6 +30,7 @@ export function TaskList({
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
+  const [isDefect, setIsDefect] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -44,6 +45,7 @@ export function TaskList({
         description: "",
         status: "todo",
         priority,
+        kind: isDefect ? "defect" : "task",
         estimate_hours: null,
         spent_hours: null,
         start_date: "",
@@ -53,6 +55,7 @@ export function TaskList({
       else {
         setTitle("");
         setDueDate("");
+        setIsDefect(false);
       }
     });
   }
@@ -89,6 +92,7 @@ export function TaskList({
                 >
                   {task.title}
                 </p>
+                {task.kind === "defect" && <Badge tone="warning">Defect</Badge>}
                 <PriorityBadge priority={task.priority} />
               </div>
               <p className="mt-0.5 text-xs text-muted">
@@ -165,6 +169,15 @@ export function TaskList({
             className="w-40"
             aria-label="Due date"
           />
+          <label className="flex items-center gap-1.5 text-sm text-muted">
+            <input
+              type="checkbox"
+              checked={isDefect}
+              onChange={(e) => setIsDefect(e.target.checked)}
+              className="size-4 rounded border-border"
+            />
+            Defect
+          </label>
           <Button type="submit" size="sm" busy={pending}>
             <Plus className="size-3.5" />
             Add

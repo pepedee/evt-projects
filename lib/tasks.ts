@@ -9,6 +9,8 @@ import type { Priority, TaskStatus } from "@/lib/types";
  * Nothing here may import from lib/db or lib/supabase/server.
  */
 
+export type TaskKind = "task" | "defect";
+
 export interface TaskRow {
   id: string;
   project_id: string;
@@ -17,6 +19,7 @@ export interface TaskRow {
   description: string | null;
   status: TaskStatus;
   priority: Priority;
+  kind: TaskKind;
   assignee_id: string | null;
   estimate_hours: number | null;
   spent_hours: number;

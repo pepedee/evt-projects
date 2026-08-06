@@ -19,6 +19,7 @@ export interface ProjectRow {
   health_override: Health | null;
   progress_pct: number;
   client_name: string | null;
+  location: string | null;
   currency: string;
   start_date: string | null;
   target_date: string | null;

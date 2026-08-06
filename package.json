@@ -7,7 +7,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "migrate": "node scripts/apply-migration.mjs",
+    "migrate": "node --env-file=.env.local scripts/apply-migration.mjs",
+    "check-schemas": "node --env-file=.env.local scripts/check-schemas.mjs",
     "report:preview": "tsx scripts/preview-report.ts"
   },
   "dependencies": {
@@ -16,6 +17,7 @@
     "@supabase/supabase-js": "^2.110.5",
     "clsx": "^2.1.1",
     "docx": "^9.7.1",
+    "image-size": "^2.0.2",
     "lucide-react": "^0.545.0",
     "next": "^16.3.0",
     "react": "19.2.4",

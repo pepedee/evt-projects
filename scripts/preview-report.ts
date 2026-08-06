@@ -34,6 +34,7 @@ const project: Project = {
   name: "Cooling Tower CT-02 pipe support remediation",
   description:
     "Replace corroded pipe supports on cooling tower CT-02 and re-certify the assembly.\n\nWork is staged around the plant shutdown window.",
+  location: "Northern Refinery site, Rayong",
   status: "active",
   priority: "high",
   health_override: null,
@@ -104,6 +105,7 @@ const task = (
   description: null,
   status,
   priority,
+  kind: "task",
   assignee_id: null,
   estimate_hours: null,
   spent_hours: 0,

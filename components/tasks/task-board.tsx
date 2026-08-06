@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { setTaskStatus } from "@/app/(app)/tasks/actions";
 import { Notice, Select } from "@/components/ui/form";
+import { Badge } from "@/components/ui/card";
 import { PriorityBadge } from "@/components/shared/status-badge";
 import {
   BOARD_COLUMNS,
@@ -70,6 +71,9 @@ export function TaskBoard({
                       <p className="min-w-0 flex-1 text-sm font-medium">
                         {task.title}
                       </p>
+                      {task.kind === "defect" && (
+                        <Badge tone="warning">Defect</Badge>
+                      )}
                       <PriorityBadge priority={task.priority} />
                     </div>
 

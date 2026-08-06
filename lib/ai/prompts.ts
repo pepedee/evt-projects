@@ -119,6 +119,19 @@ current position, then its outlook on schedule and budget.`,
     maxTokens: 16000,
     effort: "medium",
   },
+  handover_summary: {
+    instruction: `Write the opening summary for a construction/installation
+project handover report — the document a client receives at completion.
+Two to three short paragraphs, complete sentences, no bullets and no markdown
+— this text is inserted directly into a Word document. Cover: what the project
+was (site, client, scope), that it has reached completion (or where it stands
+if progress_pct is under 100), and a plain statement of what work was
+delivered based on the completed tasks in the snapshot. Do not mention
+drawings, certificates, defects, warranties, or O&M manuals — those are
+separate sections built from other records, not from this summary.`,
+    maxTokens: 16000,
+    effort: "medium",
+  },
 };
 
 export function specFor(kind: SummaryKind): PromptSpec {

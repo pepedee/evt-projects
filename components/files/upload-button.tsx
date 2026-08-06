@@ -3,16 +3,22 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Upload } from "lucide-react";
-import { Button, Notice } from "@/components/ui/form";
-import { ACCEPT_ATTRIBUTE, validateFile } from "@/lib/storage";
+import { Button, Notice, Select } from "@/components/ui/form";
+import {
+  ACCEPT_ATTRIBUTE,
+  validateFile,
+  DOCUMENT_CATEGORIES,
+  DOCUMENT_CATEGORY_LABEL,
+  type DocumentCategory,
+} from "@/lib/storage";
 
 /**
  * Posts the file to /api/upload, which stores it and records the metadata.
  *
- * The browser no longer talks to Supabase Storage directly — with
- * authentication removed the only credential is the service-role key, and that
- * cannot be exposed to a page. The size and type check below is only for a
- * fast, clear message; the route and the bucket both enforce the real limits.
+ * The category picked here decides which section of the handover report
+ * (lib/reports/handover.ts) the file lands in — see 0014_handover_report.sql.
+ * Uploads go through the server rather than straight to Supabase Storage so
+ * validation and the category tag both happen in one place.
  */
 export function UploadButton({
   projectId = null,
@@ -23,6 +29,7 @@ export function UploadButton({
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [category, setCategory] = useState<DocumentCategory>("photo");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -44,6 +51,7 @@ export function UploadButton({
 
     const body = new FormData();
     body.set("file", file);
+    body.set("category", category);
     if (projectId) body.set("projectId", projectId);
 
     try {
@@ -71,10 +79,24 @@ export function UploadButton({
         onChange={onPick}
         className="hidden"
       />
-      <Button type="button" busy={busy} onClick={() => inputRef.current?.click()}>
-        <Upload className="size-4" />
-        Upload file
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Select
+          value={category}
+          onChange={(e) => setCategory(e.target.value as DocumentCategory)}
+          className="w-56"
+          aria-label="Document category"
+        >
+          {DOCUMENT_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {DOCUMENT_CATEGORY_LABEL[c]}
+            </option>
+          ))}
+        </Select>
+        <Button type="button" busy={busy} onClick={() => inputRef.current?.click()}>
+          <Upload className="size-4" />
+          Upload file
+        </Button>
+      </div>
       {error && <Notice>{error}</Notice>}
     </div>
   );

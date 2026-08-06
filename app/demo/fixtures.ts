@@ -7,8 +7,7 @@ import type { TaskWithProject } from "@/lib/tasks";
  *
  * Invented, not real: no database is touched and nothing here corresponds to a
  * live record. It exists so the UI can be reviewed while the Supabase project
- * is unreachable. Delete this folder and the `/demo` entry in
- * lib/supabase/middleware.ts together.
+ * is unreachable. Delete this folder to remove the route.
  *
  * The numbers are deliberately awkward — an overdue project, one over budget,
  * a blocked task, spend outside any budget line — because those are the states
@@ -24,6 +23,7 @@ const day = (offset: number) => {
 const baseProject = {
   workspace_id: "demo-workspace",
   description: null,
+  location: null,
   health_override: null,
   actual_end_date: null,
   owner_id: null,
@@ -151,6 +151,7 @@ const mkTask = (
   description: null,
   status,
   priority,
+  kind: "task",
   assignee_id: null,
   estimate_hours: null,
   spent_hours: 0,

@@ -32,6 +32,31 @@ export const ACCEPTED_MIME = [
 export const ACCEPT_ATTRIBUTE = ACCEPTED_MIME.join(",");
 
 /**
+ * What a document is *for*, in handover-report terms. Drives which report
+ * section it lands in — see lib/reports/handover.ts. Must stay in step with
+ * the check constraint added in 0014_handover_report.sql.
+ */
+export const DOCUMENT_CATEGORIES = [
+  "photo",
+  "as_built_drawing",
+  "inspection_certificate",
+  "warranty",
+  "om_manual",
+  "other",
+] as const;
+
+export type DocumentCategory = (typeof DOCUMENT_CATEGORIES)[number];
+
+export const DOCUMENT_CATEGORY_LABEL: Record<DocumentCategory, string> = {
+  photo: "Photo",
+  as_built_drawing: "As-built drawing",
+  inspection_certificate: "Inspection / acceptance certificate",
+  warranty: "Warranty / guarantee",
+  om_manual: "O&M manual",
+  other: "Other",
+};
+
+/**
  * Reduce a filename to an object key that is safe everywhere.
  *
  * The allowlist is the security boundary: anything outside [A-Za-z0-9._-]

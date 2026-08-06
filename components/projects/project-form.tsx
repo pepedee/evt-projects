@@ -12,6 +12,7 @@ interface FormState {
   code: string;
   description: string;
   client_name: string;
+  location: string;
   status: string;
   priority: string;
   currency: string;
@@ -27,6 +28,7 @@ function initialState(project?: Project): FormState {
     code: project?.code ?? "",
     description: project?.description ?? "",
     client_name: project?.client_name ?? "",
+    location: project?.location ?? "",
     status: project?.status ?? "planning",
     priority: project?.priority ?? "medium",
     currency: project?.currency ?? "THB",
@@ -97,6 +99,13 @@ export function ProjectForm({ project }: { project?: Project }) {
           />
         </Field>
       </div>
+
+      <Field label="Location" hint="Site name and/or address, for the handover report.">
+        <Input
+          value={form.location}
+          onChange={(e) => set("location", e.target.value)}
+        />
+      </Field>
 
       <Field label="Description">
         <Textarea
