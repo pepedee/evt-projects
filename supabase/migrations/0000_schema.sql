@@ -1,10 +1,10 @@
 -- 0000_schema.sql
--- This app lives in its own schema so it can share a Supabase project with the
--- sibling apps without ever colliding with their tables.
---   public  -> daily-budget-app, project-list-app, visa-flow, tour-booking-app
---   agency  -> visa-agency
---   bakery  -> bakery-pos
---   tracker -> this app
+-- This app has its own dedicated Supabase project. Tables still live in a
+-- `tracker` schema rather than `public` to match the naming convention used
+-- by sibling apps (daily-budget-app, project-list-app, visa-flow,
+-- tour-booking-app on `public`; visa-agency on `agency`; bakery-pos on
+-- `bakery`) on their own separate project — not because this project is
+-- shared with them.
 
 create schema if not exists tracker;
 

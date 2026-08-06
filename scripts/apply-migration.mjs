@@ -1,5 +1,5 @@
-// Applies SQL migration files to the shared Supabase project through the
-// session pooler. The direct db.<ref>.supabase.co host fails DNS/IPv6 here.
+// Applies SQL migration files to this app's own Supabase project via
+// SUPABASE_DB_URL (Project settings -> Database -> Connection string -> URI).
 //
 // Usage: npm run migrate -- supabase/migrations/0000_schema.sql [...]
 //        npm run migrate -- --all
@@ -9,15 +9,16 @@ import { fileURLToPath } from "url";
 import pg from "pg";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PROJECT_REF = "lfpsnhuarpdlzrsnycmo";
-const PASSWORD_FILE = path.join(
-  __dirname,
-  "..",
-  "..",
-  "daily-budget-app",
-  ".supabase-db-password.txt",
-);
 const MIGRATIONS_DIR = path.join(__dirname, "..", "supabase", "migrations");
+
+const connectionString = process.env.SUPABASE_DB_URL;
+if (!connectionString) {
+  console.error(
+    "SUPABASE_DB_URL is not set. Add it to .env.local (see .env.local.example) " +
+      "and run with `npm run migrate` (which loads .env.local via --env-file).",
+  );
+  process.exit(1);
+}
 
 let files = process.argv.slice(2);
 if (files[0] === "--all") {
@@ -31,14 +32,8 @@ if (files.length === 0) {
   process.exit(1);
 }
 
-const password = readFileSync(PASSWORD_FILE, "utf8").trim();
-
 const client = new pg.Client({
-  host: "aws-0-ap-southeast-1.pooler.supabase.com",
-  port: 5432,
-  database: "postgres",
-  user: `postgres.${PROJECT_REF}`,
-  password,
+  connectionString,
   ssl: { rejectUnauthorized: false },
 });
 

@@ -1,11 +1,10 @@
 -- 0008_expose_schema.sql
 -- Makes the `tracker` schema reachable via PostgREST (the Supabase API).
 --
--- This project is SHARED with daily-budget-app / project-list-app / visa-flow /
--- tour-booking-app (public), visa-agency (agency) and bakery-pos (bakery), so
--- this must never assign a fixed list — doing that would silently un-expose a
--- sibling app's schema and take it offline. Instead it reads the current
--- setting and appends, and is a no-op if `tracker` is already there.
+-- This project is dedicated to this app, so there's no sibling schema at risk
+-- today. It still reads the current setting and appends rather than assigning
+-- a fixed list, and is a no-op if `tracker` is already there — cheap safety
+-- that costs nothing to keep even with a single schema.
 --
 -- NOTE: re-run if the Supabase dashboard's API settings are ever re-saved,
 -- since that can reset pgrst.db_schemas.

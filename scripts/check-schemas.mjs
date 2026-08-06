@@ -1,35 +1,25 @@
-// Prints the schemas PostgREST currently exposes on the shared Supabase
-// project, and fails if a sibling app's schema has gone missing.
+// Prints the schemas PostgREST currently exposes on this app's own Supabase
+// project, and fails if the app's own `tracker` schema isn't exposed.
 //
-// Run this before and after applying 0008_expose_schema.sql. That migration
-// appends to the list; if it were ever rewritten to assign a fixed list, this
-// is what catches it before the sibling apps go down.
+// Run this after applying 0008_expose_schema.sql.
 //
-// Usage: node scripts/check-schemas.mjs
-import { readFileSync } from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+// Usage: npm run check-schemas
 import pg from "pg";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PROJECT_REF = "lfpsnhuarpdlzrsnycmo";
-const PASSWORD_FILE = path.join(
-  __dirname,
-  "..",
-  "..",
-  "daily-budget-app",
-  ".supabase-db-password.txt",
-);
+const connectionString = process.env.SUPABASE_DB_URL;
+if (!connectionString) {
+  console.error(
+    "SUPABASE_DB_URL is not set. Add it to .env.local (see .env.local.example) " +
+      "and run with `npm run check-schemas` (which loads .env.local via --env-file).",
+  );
+  process.exit(1);
+}
 
-/** Schemas the sibling apps depend on. Losing any of these takes them offline. */
-const REQUIRED = ["public", "agency", "bakery"];
+/** This app's own schema. Missing it means the API can't see any of its tables. */
+const REQUIRED = ["tracker"];
 
 const client = new pg.Client({
-  host: "aws-0-ap-southeast-1.pooler.supabase.com",
-  port: 5432,
-  database: "postgres",
-  user: `postgres.${PROJECT_REF}`,
-  password: readFileSync(PASSWORD_FILE, "utf8").trim(),
+  connectionString,
   ssl: { rejectUnauthorized: false },
 });
 
@@ -54,10 +44,10 @@ try {
 
   const missing = REQUIRED.filter((s) => !exposed.includes(s));
   if (missing.length > 0) {
-    console.error(`FAIL: sibling schemas no longer exposed: ${missing.join(", ")}`);
+    console.error(`FAIL: required schema(s) not exposed: ${missing.join(", ")}`);
     process.exitCode = 1;
   } else {
-    console.log("OK: every sibling schema is still exposed");
+    console.log("OK: tracker schema is exposed");
   }
 } finally {
   await client.end();
