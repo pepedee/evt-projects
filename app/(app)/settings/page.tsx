@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/auth";
-import { listActivity, listMembers } from "@/lib/db/workspace";
+import { can, requireUser } from "@/lib/auth";
+import { listActivity, listMembers, listPendingInvites } from "@/lib/db/workspace";
 import { Badge, Card, EmptyState } from "@/components/ui/card";
+import { InvitePanel } from "@/components/settings/invite-panel";
 import { formatDate, formatDateTime } from "@/lib/format";
-import { ROLE_LABEL, type Role } from "@/lib/types";
+import { ROLE_LABEL, roleAtLeast, type Role } from "@/lib/types";
 
 export const metadata = { title: "Settings · AI Project Tracker" };
 
@@ -25,9 +26,12 @@ export default async function SettingsPage({
   const pageParam = Array.isArray(params.page) ? params.page[0] : params.page;
   const page = Number(pageParam ?? 1) || 1;
 
-  const [members, activity] = await Promise.all([
+  const canInvite = can(user, "admin");
+
+  const [members, activity, invites] = await Promise.all([
     listMembers(),
     listActivity(page),
+    canInvite ? listPendingInvites() : Promise.resolve([]),
   ]);
 
   return (
@@ -49,7 +53,7 @@ export default async function SettingsPage({
 
       <Card
         title="People"
-        description="One member today. Inviting others is a data change, not a migration — the workspace model is already in place."
+        description="Invite by email below. No email is sent — whoever registers with that exact address lands in this workspace instead of getting their own."
       >
         {members.length === 0 ? (
           <EmptyState message="No members found." />
@@ -77,6 +81,9 @@ export default async function SettingsPage({
               </li>
             ))}
           </ul>
+        )}
+        {canInvite && (
+          <InvitePanel invites={invites} canInviteOwner={roleAtLeast(user.role, "owner")} />
         )}
       </Card>
 

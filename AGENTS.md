@@ -113,6 +113,16 @@ normal email/password flow through `@supabase/ssr`.
 - `workspace_id` + `workspace_members` were kept in every schema from day one
   as the multi-user seam; restoring auth activated it rather than needing a
   migration.
+- **Adding people to a workspace is by email invite, not self-serve
+  multi-workspace membership.** `tracker.workspace_invites` (0017) holds
+  pending invites; `provision_workspace()` checks it before making a brand
+  new workspace for a signup, so a matching email lands the new account
+  straight into the inviter's workspace at the invited role instead of an
+  empty one of its own. This only works for people who haven't registered
+  yet — `getSessionUser()` in `lib/auth.ts` picks a single membership row
+  (oldest first), so there is no workspace switcher and no supported way for
+  an already-registered account to join a second workspace. Build one before
+  claiming that case works.
 
 ## AI rules
 

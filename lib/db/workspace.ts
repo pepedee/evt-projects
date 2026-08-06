@@ -8,6 +8,13 @@ export interface Member {
   created_at: string;
 }
 
+export interface PendingInvite {
+  id: string;
+  email: string;
+  role: Role;
+  created_at: string;
+}
+
 export interface ActivityRow {
   id: number;
   actor_id: string | null;
@@ -25,6 +32,19 @@ export async function listMembers(): Promise<Member[]> {
     .select("user_id, role, full_name, created_at")
     .order("created_at")
     .returns<Member[]>();
+
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function listPendingInvites(): Promise<PendingInvite[]> {
+  const db = await createClient();
+  const { data, error } = await db
+    .from("workspace_invites")
+    .select("id, email, role, created_at")
+    .is("accepted_at", null)
+    .order("created_at")
+    .returns<PendingInvite[]>();
 
   if (error) throw new Error(error.message);
   return data ?? [];
