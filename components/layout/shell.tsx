@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/nav";
-import type { SessionUser } from "@/lib/types";
+import { ROLE_LABEL, type SessionUser } from "@/lib/types";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { cn } from "@/lib/utils";
 
@@ -96,8 +96,10 @@ export function Shell({
         </nav>
 
         <div className="border-t border-border p-3">
-          <p className="truncate text-sm font-medium">{user.workspaceName}</p>
-          <p className="truncate text-xs text-muted">Open access · no sign-in</p>
+          <p className="truncate text-sm font-medium">{user.fullName}</p>
+          <p className="truncate text-xs text-muted">
+            {ROLE_LABEL[user.role]} · {user.email}
+          </p>
         </div>
       </aside>
 
@@ -117,9 +119,17 @@ export function Shell({
             {user.workspaceName}
           </span>
 
-          {/* No sign-out: the app has no sign-in. */}
           <div className="ml-auto flex items-center gap-1">
             <ThemeToggle />
+            <form action="/auth/signout" method="post">
+              <button
+                type="submit"
+                aria-label="Sign out"
+                className="flex items-center gap-2 rounded-lg p-2 text-muted transition hover:bg-surface-2 hover:text-foreground"
+              >
+                <LogOut className="size-4" />
+              </button>
+            </form>
           </div>
         </header>
 

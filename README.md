@@ -3,19 +3,11 @@
 Track projects end to end — tasks, milestones, budgets, files — with AI-written
 status summaries and generated Word reports.
 
-> ### ⚠️ This app has no authentication
->
-> There is no sign-in. Everyone who can reach the app shares one workspace and
-> can read and write everything in it — projects, budgets, client names and
-> uploaded documents. That is fine on localhost or a private network. **Do not
-> put it on a public URL** without restoring authentication (change
-> `lib/auth.ts`, revert `0012_open_access.sql`).
-
 ## Stack
 
-Next.js 16 (App Router, React 19, TypeScript) · Tailwind CSS v4 · Supabase
-Postgres (`tracker` schema) · Supabase Auth · Supabase Storage · zod ·
-Anthropic Claude API · `docx` · Vercel.
+Next.js 16 (App Router, React 19, TypeScript) · Tailwind CSS v4 · Supabase Auth
+· dedicated Supabase Postgres project (`tracker` schema) · Supabase Storage ·
+zod · Anthropic Claude API · `docx` · Vercel.
 
 ## Getting started
 
@@ -27,20 +19,21 @@ Copy `.env.local.example` to `.env.local` and fill in:
 
 | Variable | Required | Notes |
 | --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | yes | Shared Supabase project |
-| `SUPABASE_SERVICE_ROLE_KEY` | yes | **Server only.** Bypasses RLS — never prefix `NEXT_PUBLIC_`, never commit |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | no | Only needed if you restore authentication |
+| `NEXT_PUBLIC_SUPABASE_URL` | yes | This app's own dedicated Supabase project |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | Used by both the browser and server clients; RLS is the real gate |
+| `SUPABASE_SERVICE_ROLE_KEY` | no | Not read by the running app; only useful for one-off admin scripts |
+| `SUPABASE_DB_URL` | yes (for scripts) | Postgres connection string used only by `scripts/*.mjs`, not by the app itself |
 | `ANTHROPIC_API_KEY` | no | Without it, AI summaries are hidden and reports are generated without their prose sections |
 | `ANTHROPIC_MODEL` | no | Defaults to `claude-opus-5` |
 
-Apply the database migrations, then confirm the sibling apps still work:
+Apply the database migrations, then confirm the app's own schema is exposed:
 
 ```bash
 npm run migrate -- --all
 ```
 
 ```bash
-node scripts/check-schemas.mjs
+npm run check-schemas
 ```
 
 Run the dev server (port 3006):
@@ -56,7 +49,7 @@ npm run dev
 | `npm run dev` | Dev server on port 3006 |
 | `npm run build` / `npm run lint` | Must both be clean before a phase is done |
 | `npm run migrate -- --all` | Apply every SQL migration via the Supabase pooler |
-| `node scripts/check-schemas.mjs` | Verify the sibling apps' schemas are still exposed |
+| `npm run check-schemas` | Verify this app's `tracker` schema is exposed to PostgREST |
 | `npm run report:preview` | Render a Word report from fixture data — no database needed |
 
 ## Modules
@@ -68,16 +61,17 @@ npm run dev
 | `/tasks` | Cross-project kanban and list |
 | `/budgets` | Planned against actual, per project |
 | `/files` | Private storage with short-lived signed URLs |
-| `/settings` | Workspace, access model, and the append-only activity log |
-| `/demo` | UI showcase from fixture data — needs no database |
+| `/settings` | Workspace, members, and the append-only activity log |
+| `/demo` | UI showcase from fixture data — needs no database, no sign-in |
+| `/login`, `/register` | Email/password sign-in and sign-up via Supabase Auth |
 
 ## Architecture notes
 
 - **A screen never queries the database.** `app/**/page.tsx` → `lib/db/*` → Supabase.
-- **There is no security boundary inside the app.** With authentication removed
-  the server uses the service-role key, which bypasses RLS; reachability is the
-  only gate. `requireRole()` is kept as a marker of which operations were
-  privileged, so auth can be restored from one file.
+- **RLS is the real security boundary.** The server runs queries as the
+  signed-in user (cookie-based session, anon key); `0006_rls.sql`'s policies —
+  not application code — decide who can read or write what. `requireRole()` is
+  a courtesy that returns a clear error before RLS would reject the write.
 - **Derived values are computed server-side.** `progress_pct` is maintained by a
   database trigger; health is derived at read time because it changes as dates
   pass; budget totals come from SQL views.
@@ -94,7 +88,8 @@ npm run dev
 
 ## Notes
 
-This app shares one Supabase project with six sibling apps. Its tables live in
-the `tracker` schema, and `0008_expose_schema.sql` **appends** to
-`pgrst.db_schemas` — rewriting it to assign a fixed list would take the sibling
-apps offline.
+This app has its own dedicated Supabase project — nothing here is shared with
+sibling apps. Its tables live in the `tracker` schema (a naming convention
+carried over from when the project was shared, not a technical requirement),
+and `0008_expose_schema.sql` appends to `pgrst.db_schemas` rather than
+overwriting it, which stays harmless even on a single-schema project.

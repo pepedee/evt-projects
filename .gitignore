@@ -33,3 +33,10 @@ supabase/.temp
 
 # typescript
 *.tsbuildinfo
+
+.vercel
+.env*
+
+# real client business documents (quotations, invoices, receipts) — never
+# belongs in source control, committed or not
+/_Projects/

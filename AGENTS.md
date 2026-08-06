@@ -1,3 +1,27 @@
+# AI Project Tracker
+
+Senior-architect brief for this repo, kept alongside the phase-by-phase
+detail in `TASKS.md`.
+
+**Goal.** Manage projects end to end — creation through close-out — for one
+user today, with the data model already shaped for more users later without a
+rewrite. Clean, scalable, secure, responsive.
+
+**Stack.** Next.js 16 (App Router, `--webpack`) · Node · Postgres (Supabase,
+own dedicated project, `tracker` schema) · Tailwind v4 · Anthropic Claude API
+for summaries · Supabase Auth (real accounts, restored 2026-08-05 — see
+"Authentication" below) · local git, no GitHub remote yet.
+
+**Core modules.** Dashboard (KPIs, charts, upcoming/overdue) · project and
+task management (kanban, milestones, server-derived progress/health) ·
+budgets (planned vs. actual) · file uploads (private bucket, signed URLs) ·
+AI summaries (status/risk/standup/report-intro, cached by input hash) · Word
+report generation (`docx`, generated from code).
+
+**Coding rules** are the "How to work here" section directly below: explain
+architecture before coding, build one `TASKS.md` phase at a time, ask when
+unclear, clean code with comments that explain *why*.
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may
@@ -20,21 +44,28 @@ all differ from your training data. Read the relevant guide in
 
 ## AI Project Tracker specifics
 
-- Middleware lives in root `proxy.ts` (exports `proxy()` + `config.matcher`) —
-  `middleware.ts` is ignored in Next 16.
+- Root `proxy.ts` gates every route (Next 16 reads `proxy.ts`, exports
+  `proxy()` + `config.matcher`, not `middleware.ts`). It delegates to
+  `lib/supabase/middleware.ts`'s `updateSession()`, which redirects
+  unauthenticated requests to `/login` — except `PUBLIC_PATHS`
+  (`/login`, `/register`, `/demo`) and `AUTH_ROUTES` (`/auth/*`, so signing out
+  while signed in doesn't redirect back).
 - Always build/dev with `--webpack` (scripts already do this); Turbopack is not used.
 - Dev server: port 3006 (`dev-server.cmd` or the root `.claude/launch.json`).
   3000–3005 belong to sibling apps.
-- **The database lives in the `tracker` schema**, not `public`. The Supabase
-  project is shared with daily-budget-app / project-list-app / visa-flow /
-  tour-booking-app (`public`), visa-agency (`agency`) and bakery-pos (`bakery`).
-  Both server and browser clients pass `db: { schema: "tracker" }`; use
-  `createAuthClient()` for auth and storage calls.
+- **The database lives in the `tracker` schema**, not `public`. Unlike the
+  sibling apps (daily-budget-app, project-list-app, visa-flow, tour-booking-app,
+  visa-agency, bakery-pos), this app has its **own dedicated Supabase project**
+  — the schema name just follows the same convention, there is no actual
+  sharing or cross-app blast radius. Both server and browser clients pass
+  `db: { schema: "tracker" }`; use `createAuthClient()` for auth and storage
+  calls.
 - DB migrations: `supabase/migrations/*.sql`, applied with
-  `npm run migrate -- --all` (or named files) via the Supabase pooler.
-  `0004_expose_schema.sql` **APPENDS** to `pgrst.db_schemas` — never rewrite it
-  to assign a fixed list, that would un-expose `agency` and `bakery` and break
-  two live apps.
+  `npm run migrate -- --all` (reads `SUPABASE_DB_URL` from `.env.local`) via
+  the Supabase pooler. `0008_expose_schema.sql` **APPENDS** to
+  `pgrst.db_schemas` rather than overwriting it — harmless on a dedicated
+  project, but keep the append-only pattern so it stays safe if this project
+  ever hosts more than one schema.
 
 ## Architecture rules
 
@@ -49,37 +80,28 @@ all differ from your training data. Read the relevant guide in
 - **Nothing is hard deleted.** `projects` and `tasks` use `deleted_at`.
 - Money is `numeric(14,2)` plus an explicit `currency` column. Never a float.
 
-## ⚠️ There is no authentication
+## Authentication
 
-This app is **open**. There is no sign-in, no sign-up, and no per-person
-identity. Everyone who can reach it shares one workspace and has full rights
-over everything in it. See `0012_open_access.sql`.
+Real Supabase Auth, restored 2026-08-05 (`0013_restore_auth.sql`, reversing
+the earlier `0012_open_access.sql` open-access experiment). Sign-up
+auto-provisions a workspace via `0007_signup.sql`'s trigger; sign-in is a
+normal email/password flow through `@supabase/ssr`.
 
-What that means when working here:
-
-- **The server connects with `SUPABASE_SERVICE_ROLE_KEY`, which bypasses RLS.**
-  The policies in `0006_rls.sql` still exist but are no longer the gate. The
-  only real boundary is who can reach the app.
-- **That key must never reach the browser.** Nothing under `lib/db/`, `lib/ai/`
-  or `lib/reports/`, and nothing importing `lib/supabase/server.ts`, may be
-  imported from a client component. Every read and write goes through a server
-  component, a server action, or a route handler. File uploads go through
-  `/api/upload` for exactly this reason — the browser cannot hold the key.
-- **`requireRole()` and `can()` always succeed.** They are kept at every call
-  site deliberately: they document which operations were privileged, so
-  restoring authentication means changing `lib/auth.ts` and little else.
-- **`export const dynamic = "force-dynamic"` in `app/(app)/layout.tsx` is
-  load-bearing.** With no cookies to read, Next would otherwise prerender these
-  pages at build time and serve a frozen snapshot of the database.
-- **Keep the deployment private.** On a public URL, every project, budget,
-  client name and uploaded document is public.
-
-## Multi-user seam (dormant)
-
-Everything is still scoped by `workspace_id`, and `workspace_members` still
-exists, so authentication can be restored without a schema rewrite. Today one
-fixed workspace is used, defined in `0012_open_access.sql` and mirrored by
-`SHARED_WORKSPACE_ID` in `lib/auth.ts` — the two must match.
+- **`createClient()`/`createAuthClient()` in `lib/supabase/server.ts` run as
+  the signed-in user** (cookie-based session, anon key) — RLS in
+  `0006_rls.sql` is the real security boundary, not application code.
+  `requireRole()` is a courtesy that returns a clean error message before RLS
+  would reject the write with a less friendly one.
+- `SUPABASE_SERVICE_ROLE_KEY` is no longer needed by the running app. It's
+  still useful for one-off admin scripts (e.g. `supabase.auth.admin.*` to
+  create/delete test users without email confirmation) but must never be
+  imported by anything under `app/` or `lib/` that a request path touches.
+- **Workspace isolation is real and enforced by RLS**, not just documented —
+  verified 2026-08-05 with two separate accounts: a project created by one is
+  invisible to the other (`0 projects` reading it back).
+- `workspace_id` + `workspace_members` were kept in every schema from day one
+  as the multi-user seam; restoring auth activated it rather than needing a
+  migration.
 
 ## AI rules
 

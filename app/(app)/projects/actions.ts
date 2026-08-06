@@ -25,6 +25,7 @@ const projectSchema = z.object({
   code: optionalText,
   description: optionalText,
   client_name: optionalText,
+  location: optionalText,
   status: z.enum(["planning", "active", "on_hold", "completed", "cancelled"]),
   priority: z.enum(["low", "medium", "high", "critical"]),
   currency: z.string().trim().length(3, "Use a 3-letter currency code"),

@@ -33,8 +33,9 @@ export const metadata = { title: "Demo · AI Project Tracker" };
  * invented. Interactive controls are rendered read-only (`canEdit={false}`)
  * because their server actions would need a database.
  *
- * To remove: delete this folder and the `/demo` entry in
- * lib/supabase/middleware.ts.
+ * To remove: delete this folder. (There is no middleware/proxy gating routes
+ * anymore — it was removed along with authentication — so nothing else
+ * references this path.)
  */
 export default function DemoPage() {
   const ct = projects[0];
@@ -52,8 +53,8 @@ export default function DemoPage() {
           a Supabase connection.
         </p>
         <p className="mt-2 text-sm text-muted">
-          <Link href="/login" className="text-primary hover:underline">
-            Go to the real sign-in page →
+          <Link href="/dashboard" className="text-primary hover:underline">
+            Go to the live app →
           </Link>
         </p>
       </header>
@@ -273,8 +274,7 @@ export default function DemoPage() {
       </section>
 
       <footer className="border-t border-border pt-6 text-center text-xs text-muted">
-        Demo page — fixture data only. Delete <code>app/demo/</code> and the
-        <code> /demo</code> entry in <code>lib/supabase/middleware.ts</code> to remove it.
+        Demo page — fixture data only. Delete <code>app/demo/</code> to remove it.
       </footer>
     </main>
   );

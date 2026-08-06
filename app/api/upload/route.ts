@@ -2,24 +2,23 @@ import { NextResponse } from "next/server";
 import { createAuthClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { recordDocument } from "@/app/(app)/files/actions";
-import { BUCKET, buildStoragePath, validateFile } from "@/lib/storage";
-import { SHARED_WORKSPACE_ID } from "@/lib/auth";
+import {
+  BUCKET,
+  buildStoragePath,
+  validateFile,
+  DOCUMENT_CATEGORIES,
+  type DocumentCategory,
+} from "@/lib/storage";
 
 /**
  * Receives a file upload and puts it in storage.
  *
- * This used to happen straight from the browser to Supabase Storage, which
- * needed a key in the page. With authentication removed the only key is the
- * service-role key, which must never leave the server — so the bytes come here
- * first and the server does the upload.
- *
- * The trade is that uploads now pass through the app rather than going direct;
- * at a 20 MB cap that is fine.
+ * Goes through the server rather than uploading straight from the browser so
+ * validation happens in one place; storage RLS (0011_storage.sql) is the
+ * real gate, keyed off the signed-in user's own workspace.
  */
 export async function POST(request: Request): Promise<Response> {
-  // Always passes while the app is open, but kept so restoring authentication
-  // means restoring the check in lib/auth.ts rather than finding this again.
-  await requireRole("member");
+  const user = await requireRole("member");
 
   let form: FormData;
   try {
@@ -39,6 +38,13 @@ export async function POST(request: Request): Promise<Response> {
       ? rawProjectId
       : null;
 
+  const rawCategory = form.get("category");
+  const category: DocumentCategory =
+    typeof rawCategory === "string" &&
+    DOCUMENT_CATEGORIES.includes(rawCategory as DocumentCategory)
+      ? (rawCategory as DocumentCategory)
+      : "other";
+
   // Checked again here, not just in the browser: the browser check is for a
   // fast message, this one is the actual limit.
   const check = validateFile(file);
@@ -46,7 +52,7 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: check.error }, { status: 400 });
   }
 
-  const path = buildStoragePath(SHARED_WORKSPACE_ID, projectId, file.name);
+  const path = buildStoragePath(user.workspaceId, projectId, file.name);
   const storage = await createAuthClient();
 
   const { error: uploadError } = await storage.storage
@@ -63,6 +69,7 @@ export async function POST(request: Request): Promise<Response> {
     storage_path: path,
     mime_type: file.type as Parameters<typeof recordDocument>[0]["mime_type"],
     size_bytes: file.size,
+    category,
     description: "",
   });
 

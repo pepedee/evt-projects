@@ -5,7 +5,12 @@ import { z } from "zod";
 import { createClient, createAuthClient } from "@/lib/supabase/server";
 import { requireRole, requireUser } from "@/lib/auth";
 import { logActivity } from "@/lib/audit";
-import { BUCKET, ACCEPTED_MIME, MAX_UPLOAD_BYTES } from "@/lib/storage";
+import {
+  BUCKET,
+  ACCEPTED_MIME,
+  MAX_UPLOAD_BYTES,
+  DOCUMENT_CATEGORIES,
+} from "@/lib/storage";
 import { fail, type ActionResult } from "@/lib/types";
 
 /** How long a download link stays valid. Long enough to click, not to share. */
@@ -21,6 +26,7 @@ const documentSchema = z.object({
   storage_path: z.string().trim().min(1),
   mime_type: z.enum(ACCEPTED_MIME),
   size_bytes: z.number().int().positive().max(MAX_UPLOAD_BYTES),
+  category: z.enum(DOCUMENT_CATEGORIES).default("other"),
   description: z
     .string()
     .trim()

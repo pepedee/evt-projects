@@ -41,6 +41,7 @@ const taskSchema = z.object({
   description: optionalText,
   status: z.enum(["todo", "in_progress", "blocked", "done", "cancelled"]),
   priority: z.enum(["low", "medium", "high", "critical"]),
+  kind: z.enum(["task", "defect"]).default("task"),
   estimate_hours: optionalHours,
   spent_hours: optionalHours,
   start_date: optionalDate,

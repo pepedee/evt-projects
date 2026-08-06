@@ -9,65 +9,135 @@ Rule: finish and verify one phase before starting the next.
 
 | # | Phase | Scope | Status | Notes |
 |---|---|---|---|---|
-| 1 | Scaffold | Next 16 + Tailwind v4, `proxy.ts`, both Supabase clients, migration runner, port 3006, docs | **done** | Verified: `/` → `/login` via proxy, build + lint clean, 0 npm vulnerabilities |
-| 2 | Database | Migrations 0000–0008: `tracker` schema, workspaces + members, domain tables, RLS helpers + policies, expose_schema (APPEND), signup trigger | **blocked** | SQL is written and committed. Cannot apply: the Supabase project no longer exists (see Blockers). |
-| 3 | Auth + shell | Login/register, `lib/auth.ts`, protected `(app)` layout, sidebar, topbar, dark mode | **code complete, unverified** | Build + lint clean. `/login` and `/register` render; `/dashboard` correctly bounces to `/login`. The signed-in half (workspace resolution, sidebar, sign-out) cannot be exercised until the database is back. |
-| 4 | Projects + tasks | `lib/db/projects.ts`, `tasks.ts`, list + detail + kanban, milestones, server-derived progress and health | **code complete, unverified** | Build + lint clean, all 13 routes register, guards hold. No query, trigger or RLS policy has ever run. Adds migration `0009_project_overview.sql`. |
-| 5 | Budgets | Budget lines, expenses, planned-vs-actual rollups | **code complete, unverified** | Build + lint clean. Adds migration `0010_budget_rollup.sql`. Every total comes from a SQL view, never from the browser. |
-| 6 | Files | Private bucket `project-files`, `lib/storage.ts`, upload button, 300s signed URLs | **code complete, unverified** | Build + lint clean. Adds migration `0011_storage.sql`. The riskiest phase to have written blind — see steps 12–16. |
-| 7 | Dashboard | KPI cards, charts, upcoming + overdue, recent activity | **code complete, unverified** | Build + lint clean. Charts are plain CSS, server-rendered, no charting library. Palette validated in both modes — see step 17. |
-| 8 | AI summaries | `lib/ai/*`, streaming route, caching by `input_hash` | **code complete, unverified** | Build + lint clean. Bundle scan confirms no key, prompt or SDK reference reaches the browser. Needs `ANTHROPIC_API_KEY` **and** a database to run. |
-| 9 | Word reports | `lib/reports/word.ts` with `docx`, download route | **done (layout), route unverified** | `npm run report:preview` renders a real .docx from fixture data — valid OOXML, all sections present. The download route itself still needs a database. |
-| 10 | Polish | Empty/loading/error states, activity log view, responsive audit, README | **partly verified** | Build + lint clean. Skeletons, error boundaries, 404, skip link, Escape-to-close, settings + activity log, README done. Responsive verified on the reachable pages only — see step 27. |
+| 1 | Scaffold | Next 16 + Tailwind v4, both Supabase clients, migration runner, port 3006, docs | **done** | Verified at the time: build + lint clean, 0 npm vulnerabilities. `proxy.ts` (removed in `ac6d171`, restored in `0013_restore_auth.sql`'s commit) is back and live-verified — see phase 3. |
+| 2 | Database | Migrations 0000–0008: `tracker` schema, workspaces + members, domain tables, RLS helpers + policies, expose_schema (APPEND), signup trigger | **done** | 2026-08-05: all 13 migrations (0000–0012) applied cleanly to the new dedicated project, zero errors. `npm run check-schemas` confirms `tracker` is exposed alongside `public`/`graphql_public`. |
+| 3 | Auth + shell | Login/register via Supabase Auth (restored 2026-08-05), `lib/auth.ts`, protected `(app)` layout, sidebar, topbar, dark mode | **verified** | 2026-08-05: full loop confirmed live — created a confirmed account via the Admin API, signed in through the real `/login` form, dashboard showed the real identity ("signed in as Owner"), signed out via the topbar button, `/dashboard` correctly redirected back to `/login`. A second account in its own workspace saw `0 projects` from the first account's workspace — real RLS isolation, not just documented. Also: theme toggle flips the `dark` class, mobile drawer opens/closes with Escape support, skip-to-content is the first tab stop, `/demo` stays reachable without signing in. |
+| 4 | Projects + tasks | `lib/db/projects.ts`, `tasks.ts`, list + detail + kanban, milestones, server-derived progress and health | **verified** | 2026-08-05: **the real "New project" form was completely broken until today** — see the `created_by`/`owner_id`/`assignee_id` bug below. Fixed and re-verified: submitting the actual form creates a real row. `progress_pct` trigger, overdue counting, and `project_overview` also confirmed via direct SQL. Kanban drag-and-drop specifically not exercised. |
+| 5 | Budgets | Budget lines, expenses, planned-vs-actual rollups | **verified** | 2026-08-05: live checks confirm rollup math (planned 1000 / spent 550 / unassigned 150), the cross-project budget-line guard trigger fires, and deleting a budget line leaves its expenses unassigned rather than deleting them (`on delete set null`). |
+| 6 | Files | Private bucket `project-files`, `lib/storage.ts`, upload button, 300s signed URLs | **verified** | 2026-08-05: live checks confirm upload, a working signed URL that returns the correct bytes, the raw/public URL being refused (bucket is private, confirmed 400), and clean deletion. Upload-button UI and viewer-role RLS denial not exercised. |
+| 7 | Dashboard | KPI cards, charts, upcoming + overdue, recent activity | **verified** | 2026-08-05: seeded a live project and confirmed dashboard KPI tiles ("Active projects", "Open tasks") match the seeded counts exactly. Chart rendering/theming not re-verified visually this session — see `/demo` for that (step 27, done pre-database). |
+| 8 | AI summaries | `lib/ai/*`, streaming route, caching by `input_hash` | **verified** | 2026-08-05: `ANTHROPIC_API_KEY` added. Live-verified all three behaviors: fresh generation (`cached:false`, real factually-grounded text matching the seeded project), replay from cache on an identical re-request (`cached:true`), and regeneration after editing a task (`input_hash` correctly invalidates). Bundle scan re-confirmed clean. Caching was actually broken until the `created_by` fix below — every call was silently regenerating. |
+| 9 | Word reports | `lib/reports/word.ts` with `docx`, download route | **verified** | 2026-08-05: `GET /api/reports/word?projectId=...` against a live project returns HTTP 200, correct OOXML content-type, and a valid ZIP-signed (`PK`) .docx — both with `?ai=0` and with no `ANTHROPIC_API_KEY` set at all, confirming AI sections are truly best-effort and never block the download. |
+| 10 | Polish | Empty/loading/error states, activity log view, responsive audit, README | **verified** | Build + lint clean. Skip-to-content confirmed as the first tab stop; mobile drawer opens/closes correctly with Escape support; no horizontal overflow at 375 / 768 / 1280 on the live dashboard. `/demo` (fixture-based) verified separately. Not covered: settings/activity-log page interactions, and a full drag-and-drop kanban pass. |
+| 11 | Handover report | `documents.category`, `tasks.kind` ('defect'), `projects.location`, AI-drafted handover summary, `lib/reports/handover.ts` with embedded photos + listed documents, download route + UI entry point | **verified** | 2026-08-06: construction-industry completion/handover report (project overview, scope of work, as-built drawings, inspection certificates, defect/snag list, warranties, O&M manuals, financial summary). Photos embed inline via `docx`'s `ImageRun` (jpg/png/gif only — webp and non-images list as unembeddable rather than failing the report); drawings/certificates/warranties/O&M manuals are listed by name. Defects reuse `tasks.kind` rather than a separate table. Shared Word-building helpers extracted to `lib/reports/shared.ts`, used by both this and the original status report. Verified live end-to-end with a throwaway test account: uploaded a real photo through the actual UI (category picker), confirmed the `.docx`'s ZIP contains a real `word/media/*.jpg` entry (not just a non-erroring response), and the AI-drafted handover summary read correctly from the project record while correctly omitting sections it wasn't asked to write. Test account and orphaned storage objects cleaned up after. |
 
 ## Decisions (settled — do not relitigate)
 
 | Decision | Choice | Why |
 |---|---|---|
-| Auth | ~~Supabase Auth~~ → **none, open access** (changed 2026-08-05 at the owner's request) | Sign-in and sign-up removed; one shared workspace; server uses the service-role key, which bypasses RLS. The only boundary is who can reach the app. Restoring auth means reverting `0012_open_access.sql` and `lib/auth.ts`. See the warning block in AGENTS.md. |
-| Database | **Shared Supabase project, new `tracker` schema** | Matches visa-agency (`agency`) and bakery-pos (`bakery`). Gets Storage and Auth for free. |
+| Auth | ~~Open access~~ → **Supabase Auth, restored** (reversed again 2026-08-05, before deploying) | Real email/password sign-in; RLS in `0006_rls.sql` is the actual gate again, not just documented. `0013_restore_auth.sql` reverses `0012_open_access.sql`. Prompted directly by "deploy it" — open access was fine on localhost but would have made every project, budget, and file public on a real URL. See AGENTS.md's Authentication section. |
+| Database | **Dedicated Supabase project, `tracker` schema** (changed 2026-08-05) | Originally a shared project (matching visa-agency's `agency`, bakery-pos's `bakery`). Reversed after the shared project died in DNS and took five sibling apps down with it — this app now owns its project outright, so no other app's outage or config can affect it. Schema name kept for convention, not because it's shared. |
 | AI provider | **Anthropic Claude API** (`@anthropic-ai/sdk`) | Model defaults to `claude-opus-5`, overridable with `ANTHROPIC_MODEL`. Cost is controlled with `effort` (`medium` for narrative kinds, `high` for the risk scan) rather than by silently picking a smaller model. |
 | Word reports | **Generated from code with `docx`** | Full control, no template file to keep in sync. `Unit Report Template (editable).docx` is a layout reference only. |
 | Multi-user | **`workspace_id` + `workspace_members` from day one** | Single user today is one workspace with one member. Adding people stays a data change. |
 | Next version | **16.3.0**, not the siblings' 16.2.10 | 16.2.10 carries nine high-severity advisories (SSRF in server actions, cache confusion, unauthenticated server-function disclosure). The conventions that matter — `proxy.ts`, `--webpack` — are identical. |
 
+## Fixed: `created_by`/`owner_id`/`assignee_id`/`actor_id` foreign-key bug (2026-08-05)
+
+**Found by actually using the app**, not by reading code: submitting the real
+"New project" form threw `insert or update on table "projects" violates
+foreign key constraint "projects_owner_id_fkey"` right on screen. Direct-SQL
+verification (used for phases 4–7 earlier the same day) never exercises the
+app's own server actions, so it missed this entirely — a reminder that SQL
+checks and clicking the real UI catch different bugs.
+
+**Root cause:** `0012_open_access.sql` made `workspaces.created_by` nullable
+when it removed authentication, but missed every other column with the same
+`references auth.users(id)` foreign key: `projects.owner_id`,
+`projects.created_by`, `tasks.created_by`, `tasks.assignee_id`,
+`ai_summaries.created_by`, `report_jobs.created_by`, `activity_logs.actor_id`.
+The anonymous session's fixed id (`lib/auth.ts`'s `ANONYMOUS.id`) has never
+existed in `auth.users`, so every write into one of those columns violated
+its foreign key.
+
+**Blast radius:** project creation failed outright (thrown, user-facing).
+Task creation had the identical pattern. AI summary caching and the activity
+log both *appeared* to work — the AI panel still streamed real answers, the
+UI showed no error — because both call sites swallow the insert error rather
+than surfacing it, so the failure was invisible: summaries silently never
+cached (re-billing the API on every view) and the activity log stayed
+permanently empty.
+
+**Fix (anonymous era):** every affected insert wrote `null` for these columns
+instead of `user.id` — the columns are already nullable for exactly this
+reason. Touched `lib/audit.ts`, `lib/ai/summarize.ts` (+ removed the then-dead
+`userId` param from `saveSummary`/`generateSummary` and their call sites),
+`app/(app)/projects/actions.ts`, `app/(app)/tasks/actions.ts`,
+`app/(app)/budgets/actions.ts`, `app/api/reports/word/route.ts`. Re-verified
+live at the time: project creation, task creation, AI summary caching
+(generate → cache-hit → invalidate-on-edit), and the activity log all
+confirmed working through the actual app, not just SQL.
+
+**Superseded same day, once auth was restored:** all six `null` writes above
+were reverted back to `user.id`/`input.userId` — with real `auth.users` rows
+now backing every session, the original code was correct all along and the
+`userId` params came back too. Re-verified live again: `owner_id`/
+`created_by`/`actor_id` on a freshly created project all show the real
+signed-in user's UUID, not `null`.
+
 ## Blockers
 
-**The shared Supabase project is gone.** `lfpsnhuarpdlzrsnycmo.supabase.co` does
-not resolve in DNS (confirmed against 8.8.8.8, not a local resolver problem),
-and the session pooler rejects the tenant with `tenant/user not found`. The
-second project used by tour-booking-app (`rvxrkucmhmirtioxidvf`) is gone too.
+**Resolved 2026-08-05.** The dedicated Supabase project is live, all migrations
+are applied, and the schema is exposed. Remaining work is walking the
+verification checklist below, phase by phase.
 
-This blocks phases 2–9, and it also means the five sibling apps that point at
-that project (daily-budget-app, project-list-app, visa-flow, visa-agency,
-bakery-pos) cannot reach their database either.
+<details>
+<summary>History (kept for context)</summary>
 
-Needs a decision: restore the project, or stand up a new one and update
-`PROJECT_REF` in `scripts/*.mjs` plus `NEXT_PUBLIC_SUPABASE_*` in `.env.local`.
-If the new project is dedicated to this app rather than shared, the `tracker`
-schema and `0008_expose_schema.sql` can both be dropped in favour of `public`.
+**Previously: waiting on a live Supabase project.** The old shared project
+(`lfpsnhuarpdlzrsnycmo.supabase.co`) stopped resolving in DNS on 2026-08-04
+(confirmed against 8.8.8.8, not a local resolver problem) and the session
+pooler rejects the tenant with `tenant/user not found`. It was shared with
+five sibling apps (daily-budget-app, project-list-app, visa-flow, visa-agency,
+bakery-pos), all of which went down with it.
 
-### To verify once a database exists
+**Decision made 2026-08-05: this app gets its own dedicated Supabase project**,
+not a shared one — see the Database row above. `scripts/apply-migration.mjs`
+and `scripts/check-schemas.mjs` no longer hardcode a project ref or read a
+password file from a sibling app's directory; both now read a single
+`SUPABASE_DB_URL` from `.env.local` (see `.env.local.example`).
 
-1. `npm run migrate -- --all`, then `node scripts/check-schemas.mjs`.
-2. Register an account. Confirm the signup trigger created a workspace and the
-   sidebar shows it with role Owner.
+**Still needed:** the project itself. Create one at the Supabase dashboard (or
+provide a Personal Access Token so it can be created via the Management API),
+then fill in `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+`SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_DB_URL` in `.env.local`. Once
+that's done: `npm run migrate -- --all`, then `npm run check-schemas`.
+
+</details>
+
+### To verify against the live database
+
+1. `npm run migrate -- --all`, then `npm run check-schemas` — confirms the
+   `tracker` schema is exposed to PostgREST.
+2. Register an account. Confirm the signup trigger (`0007_signup.sql`,
+   reactivated by `0013_restore_auth.sql`) created a workspace and the sidebar
+   shows it with role Owner. **Verified 2026-08-05** via the Admin API +
+   real `/login` form (email confirmation bypassed for testing with
+   `email_confirm: true`, since there's no inbox to check here) — the trigger
+   correctly provisioned `"<name>'s workspace"` with Owner role.
 3. Sign out from the topbar — confirm it lands on `/login` and does not bounce
-   back (`AUTH_ROUTES` in `lib/supabase/middleware.ts` exists for exactly this).
-4. ~~Delete the membership row by hand and reload.~~ Obsolete — no signup.
-5. ~~Sign in as a second account and confirm RLS refuses it.~~ Obsolete: RLS is
-   bypassed by the service-role key. **Replaced by:** confirm the service key
-   never reaches the browser —
+   back (`AUTH_ROUTES` in `lib/supabase/middleware.ts` exists for exactly
+   this). **Verified 2026-08-05.**
+4. Delete the membership row by hand and reload — `ensure_workspace()` should
+   repair it rather than showing an empty screen. Not yet re-verified since
+   auth was restored.
+5. Sign in as a second account and confirm RLS refuses it. **Verified
+   2026-08-05**: a second account, in its own separate workspace, read back
+   `0 projects` for a project that genuinely existed under the first
+   account's workspace — real isolation, not just a documented intent. Also
+   confirm `SUPABASE_SERVICE_ROLE_KEY` never reaches the browser bundle (it's
+   no longer even read by the running app, only by admin scripts) —
    `Get-ChildItem .next\static -Recurse -Include *.js | Select-String "service_role","SUPABASE_SERVICE_ROLE_KEY"`
-   must find nothing. This is now the single most important check in this file:
-   with no login, that key leaking is the whole security model gone.
+   must find nothing.
 6. Phase 4: create a project, add tasks, mark one done — `progress_pct` must
    move on its own (the trigger computes it; the app never writes it). Add an
    overdue task and confirm health flips to at risk, then off track past the
    target date.
-7. Confirm `tracker.project_overview` respects RLS. It is declared
-   `security_invoker = true`; without that a view hands every workspace's rows
-   to every user. Query it as the second account and expect zero rows.
+7. Confirm `tracker.project_overview` is declared `security_invoker = true` in
+   the migration — without it, the view would run as its owner and bypass RLS,
+   handing every workspace's rows to every signed-in user regardless of
+   membership. Directly relevant now that multi-user auth is live; step 5's
+   isolation test above already covers the practical case.
 8. Phase 5: add two budget lines and several expenses, then check the totals by
    hand against the rows. The views aggregate each child table in its own
    subquery before joining — if that were ever flattened into direct joins,
@@ -133,15 +203,58 @@ schema and `0008_expose_schema.sql` can both be dropped in favour of `public`.
     375 / 768 / 1280, in both themes. The tables are the likely offenders:
     each sits in an `overflow-x-auto` wrapper, so the table should scroll on
     its own without the page body scrolling sideways.
-28. Keyboard pass: tab from the top of a page behind the login. "Skip to
-    content" should appear first and jump past the sidebar. On a narrow
-    viewport, open the drawer and confirm Escape closes it.
+28. Keyboard pass: tab from the top of an `(app)` page. "Skip to content"
+    should appear first and jump past the sidebar. On a narrow viewport, open
+    the drawer and confirm Escape closes it.
 29. Confirm the loading skeletons actually appear. They only show while a route
     segment streams, so a fast local database may skip them entirely — throttle
     the network to see them.
+
+## Deployed (2026-08-05)
+
+Live at **https://ai-project-tracker-zeta.vercel.app** (Vercel project
+`bozosx-debugs-projects/ai-project-tracker`). `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `ANTHROPIC_API_KEY` are set as Production
+env vars in Vercel — `SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_DB_URL` deliberately
+are not, since the deployed app never reads them. Verified live:
+unauthenticated `/dashboard` redirects to `/login`; `/demo` stays reachable
+without signing in.
+
+**Fixed 2026-08-05: email confirmation links were completely non-functional,
+not just pointed at the wrong domain.** The owner reported clicking a
+confirmation link and landing on `localhost:3000/?code=...`. Two separate
+bugs, both now fixed/flagged:
+
+1. **Missing code exchange (real bug, now fixed).** Nothing in the app ever
+   turned that `?code=` into a session — there was no callback route at all.
+   `app/page.tsx` just did `redirect("/dashboard")`, silently dropping the
+   code, and `proxy.ts` would have bounced the (still-signed-out) request to
+   `/login` before the page even ran. Fixed in `lib/supabase/middleware.ts`:
+   `updateSession()` now checks for a `code` query param on every request and
+   calls `exchangeCodeForSession()` before any redirect logic runs — a Server
+   Component can't set cookies itself, so the middleware is the only place
+   that can turn the code into a signed-in session cookie. Verified: an
+   invalid/expired code cleanly redirects to `/login` rather than crashing;
+   the success path follows Supabase's own documented pattern for this exact
+   scenario. Full round-trip with a real code couldn't be tested here — it
+   requires the *same browser* that submitted the sign-up form (the PKCE
+   `code_verifier` lives in a cookie only that browser has), and there's no
+   real inbox to click a link from in this environment.
+   **Known limitation worth being aware of:** if a user signs up on one
+   device/browser and opens the confirmation email on another, this exchange
+   will fail (`code_verifier` won't match) — that's inherent to PKCE + email,
+   not something this fix can close. Supabase's recommended fix is switching
+   the email template to a `token_hash`-based `/auth/confirm` route instead
+   of the default `?code=` link, which needs a dashboard template edit (see
+   below) — not done, since it's a bigger change than "fix the redirect."
+2. **Site URL still needs manual action on the Supabase dashboard** —
+   Authentication → URL Configuration → set Site URL (and add a Redirect URL)
+   to `https://ai-project-tracker-zeta.vercel.app`. Not doable from here.
 
 ## Open items
 
 - Import "won" projects from `project-list-app` into the tracker — revisit after
   phase 4 proves the data model. Not in scope now.
-- GitHub remote not created. Repo is local-only (`git init` in phase 1).
+- GitHub remote not created. Repo is local-only (`git init` in phase 1). Vercel
+  deploys were pushed straight from the local directory via `vercel --prod`,
+  which works but means there's no CI and no PR-preview workflow.
