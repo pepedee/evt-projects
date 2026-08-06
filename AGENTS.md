@@ -66,6 +66,17 @@ all differ from your training data. Read the relevant guide in
   `pgrst.db_schemas` rather than overwriting it — harmless on a dedicated
   project, but keep the append-only pattern so it stays safe if this project
   ever hosts more than one schema.
+- **`tracker.project_overview` uses `select p.*` and does NOT auto-update
+  when `tracker.projects` gains a column.** Postgres expands `p.*` into an
+  explicit column list at `CREATE VIEW` time; a later `ALTER TABLE ... ADD
+  COLUMN` is invisible to the view until it's explicitly redefined. This bit
+  us for real: `location` (0015) was silently unreadable through
+  `getProject()`/`listProjects()` — writable, but always `undefined` on
+  read — until 0016 fixed it. **Adding a column to `projects` means a
+  follow-up migration that drops and recreates `project_overview`** (`CREATE
+  OR REPLACE VIEW` only appends at the very end, so if the new column isn't
+  the last one on the table, replace won't work — drop and recreate, see
+  0016 for the pattern).
 
 ## Architecture rules
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import { listProjects } from "@/lib/db/projects";
 import { requireUser } from "@/lib/auth";
 import { can } from "@/lib/auth";
@@ -61,13 +61,22 @@ export default async function ProjectsPage({
           </p>
         </div>
         {can(user, "member") && (
-          <Link
-            href="/projects/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-fg transition hover:opacity-90"
-          >
-            <Plus className="size-4" />
-            New project
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href="/projects/import"
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium transition hover:bg-surface-2"
+            >
+              <Upload className="size-4" />
+              Import
+            </Link>
+            <Link
+              href="/projects/new"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-fg transition hover:opacity-90"
+            >
+              <Plus className="size-4" />
+              New project
+            </Link>
+          </div>
         )}
       </header>
 

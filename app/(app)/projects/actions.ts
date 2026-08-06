@@ -173,6 +173,127 @@ export async function deleteProject(id: string): Promise<ActionResult> {
   }
 }
 
+// ----------------------------------------------------------------- import
+
+const importBudgetLineInput = z.object({
+  category: z.string().trim().min(1).max(100),
+  description: optionalText,
+  planned_amount: z.number().min(0),
+});
+
+const importTaskInput = z.object({
+  title: z.string().trim().min(1).max(300),
+  description: optionalText,
+});
+
+export interface ImportPayload {
+  project: ProjectInput;
+  budgetLines: z.input<typeof importBudgetLineInput>[];
+  tasks: z.input<typeof importTaskInput>[];
+}
+
+/**
+ * Creates a project plus its budget lines and tasks in one action — what the
+ * import review screen submits once the user is happy with the AI-extracted
+ * draft (see lib/ai/import.ts). Not a database transaction (the Supabase
+ * client doesn't give us one): if a budget line or task fails to insert after
+ * the project itself succeeds, that failure is logged rather than rolling
+ * back a project the user already reviewed and approved — same trade-off
+ * logActivity makes everywhere else in this app.
+ */
+export async function createProjectFromImport(
+  input: ImportPayload,
+): Promise<ActionResult & { projectId?: string }> {
+  try {
+    const parsedProject = projectSchema.safeParse(input.project);
+    if (!parsedProject.success) {
+      return { ok: false, error: parsedProject.error.issues[0].message };
+    }
+    const values = parsedProject.data;
+    checkDateOrder(values.start_date, values.target_date);
+
+    const budgetLines: z.infer<typeof importBudgetLineInput>[] = [];
+    for (const line of input.budgetLines) {
+      const parsed = importBudgetLineInput.safeParse(line);
+      if (!parsed.success) {
+        return { ok: false, error: `Budget line: ${parsed.error.issues[0].message}` };
+      }
+      budgetLines.push(parsed.data);
+    }
+
+    const tasks: z.infer<typeof importTaskInput>[] = [];
+    for (const task of input.tasks) {
+      const parsed = importTaskInput.safeParse(task);
+      if (!parsed.success) {
+        return { ok: false, error: `Task: ${parsed.error.issues[0].message}` };
+      }
+      tasks.push(parsed.data);
+    }
+
+    const user = await requireRole("member");
+    const db = await createClient();
+
+    const { data, error } = await db
+      .from("projects")
+      .insert({
+        ...values,
+        currency: values.currency.toUpperCase(),
+        workspace_id: user.workspaceId,
+        owner_id: user.id,
+        created_by: user.id,
+      })
+      .select("id")
+      .single<{ id: string }>();
+
+    if (error) throw new Error(error.message);
+    const projectId = data.id;
+
+    if (budgetLines.length > 0) {
+      const { error: blError } = await db.from("budget_lines").insert(
+        budgetLines.map((line) => ({
+          ...line,
+          project_id: projectId,
+          created_by: user.id,
+        })),
+      );
+      if (blError) {
+        console.error("import: budget line insert failed", blError.message);
+      }
+    }
+
+    if (tasks.length > 0) {
+      const { error: taskError } = await db.from("tasks").insert(
+        tasks.map((task, i) => ({
+          ...task,
+          project_id: projectId,
+          status: "todo" as const,
+          priority: "medium" as const,
+          kind: "task" as const,
+          sort_order: i,
+          created_by: user.id,
+        })),
+      );
+      if (taskError) {
+        console.error("import: task insert failed", taskError.message);
+      }
+    }
+
+    await logActivity(user, {
+      entity: "project",
+      entityId: projectId,
+      action: "create",
+      summary: `Imported project "${values.name}" from a document`,
+      after: values,
+    });
+
+    revalidatePath("/projects");
+    revalidatePath("/dashboard");
+    return { ok: true, message: "Project imported.", projectId };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
 // ------------------------------------------------------------- milestones
 
 const milestoneSchema = z.object({
