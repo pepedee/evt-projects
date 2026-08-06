@@ -19,10 +19,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         {/* Apply the stored theme before first paint so there is no flash of
-            the wrong colour scheme. */}
+            the wrong colour scheme or visual style. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem("theme");if(t==="dark"||(!t&&matchMedia("(prefers-color-scheme:dark)").matches))document.documentElement.classList.add("dark")}catch(e){}`,
+            __html: `try{var t=localStorage.getItem("theme");if(t==="dark"||(!t&&matchMedia("(prefers-color-scheme:dark)").matches))document.documentElement.classList.add("dark");var s=localStorage.getItem("themeStyle");if(s&&s!=="classic")document.documentElement.setAttribute("data-theme",s)}catch(e){}`,
           }}
         />
       </head>

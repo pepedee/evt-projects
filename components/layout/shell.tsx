@@ -8,6 +8,7 @@ import { switchWorkspace } from "@/app/(app)/settings/actions";
 import { NAV_ITEMS } from "@/lib/nav";
 import { ROLE_LABEL, type SessionUser } from "@/lib/types";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { ThemeStyleSwitcher } from "@/components/layout/theme-style-switcher";
 import { Select } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import type { MyWorkspace } from "@/lib/db/workspace";
@@ -158,6 +159,7 @@ export function Shell({
           <div className="flex-1 lg:hidden">{workspaceLabel}</div>
 
           <div className="ml-auto flex items-center gap-1">
+            <ThemeStyleSwitcher />
             <ThemeToggle />
             <form action="/auth/signout" method="post">
               <button

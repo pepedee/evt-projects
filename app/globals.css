@@ -78,6 +78,121 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ------------------------------------------------------------ visual themes
+   A second, independent axis from light/dark: [data-theme] on <html>,
+   applied by the same pre-paint script that applies .dark (see
+   app/layout.tsx), so there is no flash of the wrong style either.
+
+   Chart tokens (--chart-1, --chart-2, --chart-critical, --chart-grid,
+   --chart-axis) are deliberately identical across every theme — those were
+   validated for colour-vision deficiency and contrast (see "Charts" in
+   AGENTS.md) and nothing here re-does that work. Only UI chrome varies:
+   surface colours, radius, and how much glass the sidebar/header get. */
+
+[data-theme="macos"] {
+  --background: #ececec;
+  --surface: #ffffff;
+  --surface-2: #f5f5f7;
+  --foreground: #1d1d1f;
+  --muted: #6e6e73;
+  --border: #d8d8dc;
+  --primary: #007aff;
+  --primary-fg: #ffffff;
+  --ring: #007aff;
+  --success: #248a3d;
+  --warning: #b3690a;
+  --danger: #d70015;
+}
+
+[data-theme="macos"].dark {
+  --background: #1e1e1e;
+  --surface: #262628;
+  --surface-2: #2c2c2e;
+  --foreground: #f5f5f7;
+  --muted: #98989d;
+  --border: #3a3a3c;
+  --primary: #0a84ff;
+  --primary-fg: #ffffff;
+  --ring: #0a84ff;
+  --success: #30d158;
+  --warning: #ff9f0a;
+  --danger: #ff453a;
+}
+
+[data-theme="ios26"] {
+  --background: #eef1f6;
+  --surface: #ffffff;
+  --surface-2: #f2f4f8;
+  --foreground: #0b0b0f;
+  --muted: #6b7280;
+  --border: #dde1e8;
+  --primary: #0a84ff;
+  --primary-fg: #ffffff;
+  --ring: #0a84ff;
+  --success: #248a3d;
+  --warning: #b3690a;
+  --danger: #d70015;
+}
+
+[data-theme="ios26"].dark {
+  --background: #000000;
+  --surface: #1c1c1e;
+  --surface-2: #242426;
+  --foreground: #f2f2f7;
+  --muted: #98989d;
+  --border: #333335;
+  --primary: #0a84ff;
+  --primary-fg: #ffffff;
+  --ring: #0a84ff;
+  --success: #30d158;
+  --warning: #ff9f0a;
+  --danger: #ff453a;
+}
+
+/* Corner radius: a little tighter than default for macOS's traditional
+   rounded-rect controls, noticeably rounder — pills on buttons/links — for
+   iOS 26's "Liquid Glass" language. Overrides the existing Tailwind utility
+   classes directly rather than threading a radius variable through every
+   component that uses rounded-2xl/rounded-lg/rounded-xl. */
+[data-theme="macos"] .rounded-2xl { border-radius: 14px; }
+[data-theme="macos"] .rounded-xl { border-radius: 11px; }
+[data-theme="macos"] .rounded-lg { border-radius: 8px; }
+
+[data-theme="ios26"] .rounded-2xl { border-radius: 24px; }
+[data-theme="ios26"] .rounded-xl { border-radius: 18px; }
+[data-theme="ios26"] input.rounded-lg,
+[data-theme="ios26"] select.rounded-lg,
+[data-theme="ios26"] textarea.rounded-lg { border-radius: 16px; }
+[data-theme="ios26"] button.rounded-lg,
+[data-theme="ios26"] a.rounded-lg { border-radius: 999px; }
+
+/* Glass chrome: the sidebar and topbar go translucent with a heavy blur —
+   real "vibrancy", not just a lighter surface colour. Left off ordinary
+   cards on purpose: this app's tables carry money and dates, and blurring
+   what sits behind them would cost legibility for a cosmetic flourish. */
+[data-theme="macos"] aside,
+[data-theme="macos"] header {
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+}
+
+[data-theme="ios26"] aside,
+[data-theme="ios26"] header {
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  backdrop-filter: blur(30px) saturate(1.9);
+  -webkit-backdrop-filter: blur(30px) saturate(1.9);
+}
+
+/* Liquid Glass leans on elevation: cards read as panes floating above the
+   background rather than flush with it. */
+[data-theme="ios26"] .border-border.bg-surface {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+[data-theme="ios26"].dark .border-border.bg-surface {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
 /* Focus ring that stays visible in both themes. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--ring);
