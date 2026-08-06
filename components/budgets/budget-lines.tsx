@@ -2,7 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { createBudgetLine, deleteBudgetLine } from "@/app/(app)/budgets/actions";
+import {
+  createBudgetLine,
+  deleteBudgetLine,
+  updateBudgetLine,
+} from "@/app/(app)/budgets/actions";
 import { Button, Input, Notice } from "@/components/ui/form";
 import { EmptyState } from "@/components/ui/card";
 import { formatMoney } from "@/lib/format";
@@ -53,6 +57,32 @@ export function BudgetLines({
     });
   }
 
+  /**
+   * Saved on blur, not on every keystroke — this is money, not a toggle.
+   *
+   * The category/amount inputs below deliberately do NOT use `disabled={pending}`
+   * the way the add form and delete button do: `pending` is one shared flag
+   * for the whole list, so disabling every input while any single row's save
+   * is in flight silently dropped a fast second edit mid-keystroke — caught
+   * live while verifying this feature.
+   */
+  function saveEdit(line: BudgetLine, patch: { category?: string; planned_amount?: string }) {
+    const nextCategory = patch.category ?? line.category;
+    const nextAmount = patch.planned_amount ?? String(line.planned_amount);
+    if (nextCategory === line.category && nextAmount === String(line.planned_amount)) {
+      return;
+    }
+    startTransition(async () => {
+      const result = await updateBudgetLine(line.id, {
+        project_id: projectId,
+        category: nextCategory,
+        description: line.description,
+        planned_amount: nextAmount,
+      });
+      if (!result.ok) setError(result.error);
+    });
+  }
+
   return (
     <div>
       {lines.length === 0 && spentUnassigned === 0 ? (
@@ -73,13 +103,38 @@ export function BudgetLines({
               {lines.map((line) => (
                 <tr key={line.id}>
                   <td className="px-5 py-3">
-                    <p className="font-medium">{line.category}</p>
+                    {canEdit ? (
+                      <Input
+                        // Remounts when the server confirms a new value, so a
+                        // save from elsewhere (or a failed save reverting)
+                        // shows up without needing controlled-input state
+                        // for every keystroke in between.
+                        key={`category-${line.id}-${line.category}`}
+                        defaultValue={line.category}
+                        onBlur={(e) => saveEdit(line, { category: e.target.value })}
+                        aria-label={`Category of ${line.category}`}
+                        className="font-medium"
+                      />
+                    ) : (
+                      <p className="font-medium">{line.category}</p>
+                    )}
                     {line.description && (
                       <p className="text-xs text-muted">{line.description}</p>
                     )}
                   </td>
                   <td className="px-5 py-3 text-right tabular-nums">
-                    {formatMoney(line.planned_amount, currency)}
+                    {canEdit ? (
+                      <Input
+                        key={`amount-${line.id}-${line.planned_amount}`}
+                        defaultValue={String(line.planned_amount)}
+                        onBlur={(e) => saveEdit(line, { planned_amount: e.target.value })}
+                        inputMode="decimal"
+                        aria-label={`Planned amount for ${line.category}`}
+                        className="text-right"
+                      />
+                    ) : (
+                      formatMoney(line.planned_amount, currency)
+                    )}
                   </td>
                   <td className="px-5 py-3 text-right tabular-nums">
                     {formatMoney(line.spent_total, currency)}
