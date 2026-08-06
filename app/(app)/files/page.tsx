@@ -17,7 +17,7 @@ export default async function FilesPage({
   const user = await requireUser();
 
   const search = Array.isArray(params.q) ? params.q[0] : params.q;
-  const documents = await listDocuments({ search });
+  const documents = await listDocuments(user.workspaceId, { search });
 
   return (
     <div className="space-y-6">

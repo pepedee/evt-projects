@@ -19,15 +19,16 @@ export async function generateSummary(
   projectId: string,
   kind: SummaryKind,
   userId: string,
+  workspaceId: string,
 ): Promise<{ content: string; cached: boolean } | null> {
   if (!isAiConfigured()) return null;
 
-  const snapshot = await buildProjectSnapshot(projectId);
+  const snapshot = await buildProjectSnapshot(projectId, workspaceId);
   if (!snapshot) return null;
 
   const inputHash = snapshotHash(kind, snapshot);
 
-  const cached = await findCachedSummary(projectId, kind, inputHash);
+  const cached = await findCachedSummary(projectId, kind, inputHash, workspaceId);
   if (cached) return { content: cached.content, cached: true };
 
   const spec = specFor(kind);

@@ -24,14 +24,17 @@ const SELECT =
   "size_bytes, version, replaces_id, description, category, uploaded_by, created_at, " +
   "projects(name)";
 
-export async function listDocuments(filters: {
-  projectId?: string;
-  category?: DocumentCategory;
-  search?: string;
-} = {}): Promise<DocumentRow[]> {
+export async function listDocuments(
+  workspaceId: string,
+  filters: {
+    projectId?: string;
+    category?: DocumentCategory;
+    search?: string;
+  } = {},
+): Promise<DocumentRow[]> {
   const db = await createClient();
 
-  let query = db.from("documents").select(SELECT);
+  let query = db.from("documents").select(SELECT).eq("workspace_id", workspaceId);
 
   if (filters.projectId) query = query.eq("project_id", filters.projectId);
   if (filters.category) query = query.eq("category", filters.category);

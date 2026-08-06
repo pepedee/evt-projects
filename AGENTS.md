@@ -114,29 +114,49 @@ normal email/password flow through `@supabase/ssr`.
   without email confirmation). Do not add a second request-path caller
   without a similarly hard requirement — grep for `lib/supabase/admin` to see
   every place it's used.
-- **Workspace isolation is real and enforced by RLS**, not just documented —
-  verified 2026-08-05 with two separate accounts: a project created by one is
-  invisible to the other (`0 projects` reading it back).
+- **Workspace isolation is enforced by RLS, but RLS alone answers "is this
+  user a member of this row's workspace at all", not "is this the workspace
+  they're currently working in".** Those were the same question as long as
+  everyone had exactly one membership — no longer true since phase 18 added
+  multi-workspace membership, and the gap was real, not hypothetical: every
+  `lib/db/*` read function shipped through phase 17 relied on RLS alone, and
+  the instant a test account belonged to two workspaces, list queries
+  (`listProjects`, `getDashboard`, `listMembers`, `listActivity`, etc.)
+  silently combined rows from both. **Every one of those functions now takes
+  an explicit `workspaceId` and adds `.eq("workspace_id", workspaceId)` —
+  RLS is the backstop, the application decides which of a user's permitted
+  workspaces a given request means.** Any new `lib/db/*` query must do the
+  same; do not assume RLS's `is_member(workspace_id)` is sufficient scoping
+  on its own.
 - `workspace_id` + `workspace_members` were kept in every schema from day one
   as the multi-user seam; restoring auth activated it rather than needing a
   migration.
-- **Adding people to a workspace is by email invite, not self-serve
-  multi-workspace membership.** `tracker.workspace_invites` (0017) holds
-  pending invites; `provision_workspace()` checks it before making a brand
-  new workspace for a signup, so a matching email lands the new account
-  straight into the inviter's workspace at the invited role instead of an
-  empty one of its own. `inviteMember` (`app/(app)/settings/actions.ts`)
-  inserts that row *and* calls `auth.admin.inviteUserByEmail`, which creates
-  the `auth.users` row immediately (so the trigger honors the invite right
-  away, before the email is even opened) and sends Supabase's own invite
-  email. `email_exists` from that call means the address is already
-  registered elsewhere — the pending-invite row is deleted rather than left
-  to rot, since `provision_workspace()` only fires for a brand new signup and
-  would never consume it. This only works for people who haven't registered
-  yet — `getSessionUser()` in `lib/auth.ts` picks a single membership row
-  (oldest first), so there is no workspace switcher and no supported way for
-  an already-registered account to join a second workspace. Build one before
-  claiming that case works.
+- **Which workspace a session resolves to is cookie-driven, not fixed.**
+  `getSessionUser()` (`lib/auth.ts`) prefers the membership named by the
+  `active_workspace_id` cookie (`ACTIVE_WORKSPACE_COOKIE`) if the user
+  actually has a row for it, falling back to their oldest membership
+  otherwise — so a tampered or stale cookie just degrades to the default
+  rather than granting anything. `switchWorkspace()`
+  (`app/(app)/settings/actions.ts`) is the only writer, and re-verifies
+  membership before setting it. `Shell` (`components/layout/shell.tsx`)
+  only renders the switcher `<Select>` when `listMyWorkspaces()` returns more
+  than one workspace — almost nobody ever sees it.
+- **Adding people to a workspace is by email invite.** `tracker.workspace_invites`
+  (0017) holds pending invites; `provision_workspace()` checks it before
+  making a brand new workspace for a signup, so a matching email lands the
+  new account straight into the inviter's workspace at the invited role
+  instead of an empty one of its own. `inviteMember`
+  (`app/(app)/settings/actions.ts`) inserts that row *and* calls
+  `auth.admin.inviteUserByEmail`, which creates the `auth.users` row
+  immediately (so the trigger honors the invite right away, before the email
+  is even opened) and sends Supabase's own invite email. `email_exists` from
+  that call means the address is already registered elsewhere — as of
+  phase 18 that's handled by resolving their user id
+  (`auth.admin.generateLink({ type: "magiclink" })`, which doesn't send
+  anything) and inserting them into `workspace_members` directly; the
+  now-useless pending-invite row is deleted rather than left to rot, since
+  `provision_workspace()` only fires for a brand new signup and would never
+  consume it.
 - **The invite email's link does not go through `proxy.ts`'s `?code=`
   exchange.** Signup/password-reset links use the PKCE code flow and land as
   a query param the server can read; Supabase's `invite` verify type instead

@@ -29,9 +29,9 @@ export default async function SettingsPage({
   const canInvite = can(user, "admin");
 
   const [members, activity, invites] = await Promise.all([
-    listMembers(),
-    listActivity(page),
-    canInvite ? listPendingInvites() : Promise.resolve([]),
+    listMembers(user.workspaceId),
+    listActivity(user.workspaceId, page),
+    canInvite ? listPendingInvites(user.workspaceId) : Promise.resolve([]),
   ]);
 
   return (
@@ -53,7 +53,7 @@ export default async function SettingsPage({
 
       <Card
         title="People"
-        description="Invite by email below. They'll get a real email with a link to set a password and join this workspace directly."
+        description="Invite by email below. Someone new gets a real email to set a password and join; someone already registered elsewhere is added directly, no email needed."
       >
         {members.length === 0 ? (
           <EmptyState message="No members found." />

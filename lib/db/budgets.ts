@@ -30,7 +30,10 @@ export interface Expense {
   receipt_document_id: string | null;
 }
 
-export async function listBudgetLines(projectId: string): Promise<BudgetLine[]> {
+export async function listBudgetLines(
+  projectId: string,
+  workspaceId: string,
+): Promise<BudgetLine[]> {
   const db = await createClient();
   const { data, error } = await db
     .from("budget_line_overview")
@@ -38,6 +41,7 @@ export async function listBudgetLines(projectId: string): Promise<BudgetLine[]> 
       "id, project_id, category, description, planned_amount, spent_total, expense_count, sort_order",
     )
     .eq("project_id", projectId)
+    .eq("workspace_id", workspaceId)
     .order("sort_order")
     .order("category");
 
@@ -60,7 +64,10 @@ export async function listBudgetLines(projectId: string): Promise<BudgetLine[]> 
   });
 }
 
-export async function listExpenses(projectId: string): Promise<Expense[]> {
+export async function listExpenses(
+  projectId: string,
+  workspaceId: string,
+): Promise<Expense[]> {
   const db = await createClient();
   const { data, error } = await db
     .from("expenses")
@@ -68,6 +75,7 @@ export async function listExpenses(projectId: string): Promise<Expense[]> {
       "id, project_id, budget_line_id, description, amount, incurred_on, vendor, receipt_document_id",
     )
     .eq("project_id", projectId)
+    .eq("workspace_id", workspaceId)
     .order("incurred_on", { ascending: false });
 
   if (error) throw new Error(error.message);

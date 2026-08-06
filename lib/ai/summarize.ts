@@ -19,14 +19,15 @@ const MAX_TASKS_IN_SNAPSHOT = 60;
  */
 export async function buildProjectSnapshot(
   projectId: string,
+  workspaceId: string,
 ): Promise<ProjectSnapshot | null> {
-  const project = await getProject(projectId);
+  const project = await getProject(projectId, workspaceId);
   if (!project) return null;
 
   const [milestones, tasks, budgetLines] = await Promise.all([
-    listMilestones(projectId),
-    listTasks({ projectId }),
-    listBudgetLines(projectId),
+    listMilestones(projectId, workspaceId),
+    listTasks(workspaceId, { projectId }),
+    listBudgetLines(projectId, workspaceId),
   ]);
 
   // Open work first, and overdue before the rest — if the list is truncated,
@@ -125,12 +126,14 @@ export async function findCachedSummary(
   projectId: string,
   kind: SummaryKind,
   inputHash: string,
+  workspaceId: string,
 ): Promise<StoredSummary | null> {
   const db = await createClient();
   const { data, error } = await db
     .from("ai_summaries")
     .select("id, content, model, created_at")
     .eq("project_id", projectId)
+    .eq("workspace_id", workspaceId)
     .eq("kind", kind)
     .eq("input_hash", inputHash)
     .maybeSingle<StoredSummary>();
@@ -143,12 +146,14 @@ export async function findCachedSummary(
 export async function latestSummary(
   projectId: string,
   kind: SummaryKind,
+  workspaceId: string,
 ): Promise<StoredSummary | null> {
   const db = await createClient();
   const { data, error } = await db
     .from("ai_summaries")
     .select("id, content, model, created_at")
     .eq("project_id", projectId)
+    .eq("workspace_id", workspaceId)
     .eq("kind", kind)
     .order("created_at", { ascending: false })
     .limit(1)

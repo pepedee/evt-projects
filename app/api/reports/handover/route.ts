@@ -64,7 +64,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const wantsAi = parsed.data.ai !== "0" && isAiConfigured();
 
   // RLS decides visibility: a project the user cannot read is a 404.
-  const project = await getProject(projectId);
+  const project = await getProject(projectId, user.workspaceId);
   if (!project) {
     return NextResponse.json({ error: "Project not found." }, { status: 404 });
   }
@@ -74,9 +74,9 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   try {
     const [tasks, budgetLines, documents] = await Promise.all([
-      listTasks({ projectId }),
-      listBudgetLines(projectId),
-      listDocuments({ projectId }),
+      listTasks(user.workspaceId, { projectId }),
+      listBudgetLines(projectId, user.workspaceId),
+      listDocuments(user.workspaceId, { projectId }),
     ]);
 
     const completedTasks = tasks.filter(
@@ -106,6 +106,7 @@ export async function GET(request: NextRequest): Promise<Response> {
           projectId,
           "handover_summary",
           user.id,
+          user.workspaceId,
         );
         executiveSummary = summary?.content ?? null;
       } catch (err) {

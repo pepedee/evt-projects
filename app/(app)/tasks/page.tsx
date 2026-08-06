@@ -41,7 +41,7 @@ export default async function TasksPage({
   const view = single("view") === "list" ? "list" : "board";
   const overdueOnly = single("overdue") === "1";
 
-  const tasks = await listTasks({
+  const tasks = await listTasks(user.workspaceId, {
     search: single("q"),
     status: single("status") as TaskStatus | "all" | undefined,
     priority: single("priority") as Priority | "all" | undefined,

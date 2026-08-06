@@ -33,15 +33,15 @@ export default async function ProjectDetailPage({
   const { id } = await params;
   const user = await requireUser();
 
-  const project = await getProject(id);
+  const project = await getProject(id, user.workspaceId);
   if (!project) notFound();
 
   const [milestones, tasks, budgetLines, expenses, documents] = await Promise.all([
-    listMilestones(id),
-    listTasks({ projectId: id }),
-    listBudgetLines(id),
-    listExpenses(id),
-    listDocuments({ projectId: id }),
+    listMilestones(id, user.workspaceId),
+    listTasks(user.workspaceId, { projectId: id }),
+    listBudgetLines(id, user.workspaceId),
+    listExpenses(id, user.workspaceId),
+    listDocuments(user.workspaceId, { projectId: id }),
   ]);
 
   const canEdit = can(user, "member");

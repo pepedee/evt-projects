@@ -72,13 +72,13 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   // RLS decides this: a project the user cannot read has no snapshot.
-  const snapshot = await buildProjectSnapshot(projectId);
+  const snapshot = await buildProjectSnapshot(projectId, user.workspaceId);
   if (!snapshot) {
     return NextResponse.json({ error: "Project not found." }, { status: 404 });
   }
 
   const inputHash = snapshotHash(kind, snapshot);
-  const cached = await findCachedSummary(projectId, kind, inputHash);
+  const cached = await findCachedSummary(projectId, kind, inputHash, user.workspaceId);
 
   // Nothing about the project has changed since this was written, so there is
   // nothing new to say — replay it rather than paying for the same answer.

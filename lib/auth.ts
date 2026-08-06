@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { createClient, createAuthClient } from "@/lib/supabase/server";
@@ -11,6 +12,15 @@ interface MembershipRow {
 }
 
 const MEMBERSHIP_SELECT = "workspace_id, role, full_name, workspaces(name)";
+
+/**
+ * Which workspace to render when a user belongs to more than one — set by
+ * switchWorkspace() in app/(app)/settings/actions.ts. Its value is only ever
+ * trusted after re-checking the user actually has a membership row for it
+ * (below), so a tampered or stale cookie just falls back to the default
+ * rather than granting anything.
+ */
+export const ACTIVE_WORKSPACE_COOKIE = "active_workspace_id";
 
 /**
  * The signed-in user and the workspace they are working in. Cached per
@@ -28,16 +38,23 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
 
   const db = await createClient();
 
-  const load = async () =>
-    db
+  const load = async (workspaceId?: string) => {
+    let query = db
       .from("workspace_members")
       .select(MEMBERSHIP_SELECT)
-      .eq("user_id", user.id)
-      .order("created_at")
-      .limit(1)
-      .maybeSingle<MembershipRow>();
+      .eq("user_id", user.id);
+    if (workspaceId) query = query.eq("workspace_id", workspaceId);
+    return query.order("created_at").limit(1).maybeSingle<MembershipRow>();
+  };
 
-  let { data: membership } = await load();
+  const preferred = (await cookies()).get(ACTIVE_WORKSPACE_COOKIE)?.value;
+  let membership = preferred ? (await load(preferred)).data : null;
+
+  // No cookie, or it named a workspace this user isn't (or no longer is) a
+  // member of — the default is simply their oldest membership.
+  if (!membership) {
+    ({ data: membership } = await load());
+  }
 
   // An account can exist without a workspace: it was created before this app
   // did, or the signup trigger swallowed an error (see 0007_signup.sql).

@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Menu, X } from "lucide-react";
+import { switchWorkspace } from "@/app/(app)/settings/actions";
 import { NAV_ITEMS } from "@/lib/nav";
 import { ROLE_LABEL, type SessionUser } from "@/lib/types";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { Select } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
+import type { MyWorkspace } from "@/lib/db/workspace";
 
 /**
  * Sidebar and topbar share the mobile open/closed state, so they live in one
@@ -15,13 +18,17 @@ import { cn } from "@/lib/utils";
  */
 export function Shell({
   user,
+  workspaces,
   children,
 }: {
   user: SessionUser;
+  workspaces: MyWorkspace[];
   children: React.ReactNode;
 }) {
   const [navOpen, setNavOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const [switching, startSwitch] = useTransition();
 
   // Escape closes the drawer. Without this the only way out on a phone is to
   // hit the scrim, which is not reachable from a keyboard.
@@ -33,6 +40,39 @@ export function Shell({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [navOpen]);
+
+  function changeWorkspace(workspaceId: string) {
+    if (workspaceId === user.workspaceId) return;
+    startSwitch(async () => {
+      const result = await switchWorkspace(workspaceId);
+      if (result.ok) {
+        router.push("/dashboard");
+        router.refresh();
+      }
+    });
+  }
+
+  // Almost everyone belongs to exactly one workspace — only pay for the
+  // dropdown's extra chrome when there's actually something to switch
+  // between.
+  const workspaceLabel =
+    workspaces.length > 1 ? (
+      <Select
+        value={user.workspaceId}
+        disabled={switching}
+        onChange={(e) => changeWorkspace(e.target.value)}
+        aria-label="Switch workspace"
+        className="w-auto min-w-0 truncate py-1 text-sm font-semibold"
+      >
+        {workspaces.map((w) => (
+          <option key={w.workspace_id} value={w.workspace_id}>
+            {w.name}
+          </option>
+        ))}
+      </Select>
+    ) : (
+      <span className="truncate font-semibold">{user.workspaceName}</span>
+    );
 
   return (
     <div className="min-h-screen">
@@ -60,8 +100,8 @@ export function Shell({
           navOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex h-14 items-center justify-between border-b border-border px-4">
-          <span className="truncate font-semibold">{user.workspaceName}</span>
+        <div className="flex h-14 items-center justify-between gap-2 border-b border-border px-4">
+          {workspaceLabel}
           <button
             type="button"
             onClick={() => setNavOpen(false)}
@@ -115,9 +155,7 @@ export function Shell({
             <Menu className="size-4" />
           </button>
 
-          <span className="flex-1 truncate font-medium lg:hidden">
-            {user.workspaceName}
-          </span>
+          <div className="flex-1 lg:hidden">{workspaceLabel}</div>
 
           <div className="ml-auto flex items-center gap-1">
             <ThemeToggle />

@@ -11,9 +11,9 @@ export default async function EditProjectPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRole("member");
+  const user = await requireRole("member");
   const { id } = await params;
-  const project = await getProject(id);
+  const project = await getProject(id, user.workspaceId);
   if (!project) notFound();
 
   return (

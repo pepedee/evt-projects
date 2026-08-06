@@ -97,7 +97,10 @@ function withHealth(row: ProjectRow): Project {
   };
 }
 
-export async function listProjects(filters: ProjectFilters = {}): Promise<{
+export async function listProjects(
+  workspaceId: string,
+  filters: ProjectFilters = {},
+): Promise<{
   rows: Project[];
   total: number;
   pageCount: number;
@@ -109,6 +112,7 @@ export async function listProjects(filters: ProjectFilters = {}): Promise<{
   let query = db
     .from("project_overview")
     .select("*", { count: "exact" })
+    .eq("workspace_id", workspaceId)
     .is("deleted_at", null);
 
   if (filters.status && filters.status !== "all") {
@@ -141,12 +145,16 @@ export async function listProjects(filters: ProjectFilters = {}): Promise<{
   };
 }
 
-export async function getProject(id: string): Promise<Project | null> {
+export async function getProject(
+  id: string,
+  workspaceId: string,
+): Promise<Project | null> {
   const db = await createClient();
   const { data, error } = await db
     .from("project_overview")
     .select("*")
     .eq("id", id)
+    .eq("workspace_id", workspaceId)
     .is("deleted_at", null)
     .maybeSingle<ProjectRow>();
 
@@ -154,12 +162,16 @@ export async function getProject(id: string): Promise<Project | null> {
   return data ? withHealth(data) : null;
 }
 
-export async function listMilestones(projectId: string): Promise<Milestone[]> {
+export async function listMilestones(
+  projectId: string,
+  workspaceId: string,
+): Promise<Milestone[]> {
   const db = await createClient();
   const { data, error } = await db
     .from("milestones")
     .select("id, project_id, name, description, due_date, status, sort_order")
     .eq("project_id", projectId)
+    .eq("workspace_id", workspaceId)
     .order("sort_order")
     .returns<Milestone[]>();
 
@@ -168,11 +180,14 @@ export async function listMilestones(projectId: string): Promise<Milestone[]> {
 }
 
 /** Counts for the dashboard and the projects header. */
-export async function projectStatusCounts(): Promise<Record<string, number>> {
+export async function projectStatusCounts(
+  workspaceId: string,
+): Promise<Record<string, number>> {
   const db = await createClient();
   const { data, error } = await db
     .from("projects")
     .select("status")
+    .eq("workspace_id", workspaceId)
     .is("deleted_at", null)
     .returns<{ status: ProjectStatus }[]>();
 

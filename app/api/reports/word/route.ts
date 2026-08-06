@@ -48,7 +48,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const wantsAi = parsed.data.ai !== "0" && isAiConfigured();
 
   // RLS decides visibility: a project the user cannot read is a 404.
-  const project = await getProject(projectId);
+  const project = await getProject(projectId, user.workspaceId);
   if (!project) {
     return NextResponse.json({ error: "Project not found." }, { status: 404 });
   }
@@ -58,9 +58,9 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   try {
     const [milestones, tasks, budgetLines] = await Promise.all([
-      listMilestones(projectId),
-      listTasks({ projectId }),
-      listBudgetLines(projectId),
+      listMilestones(projectId, user.workspaceId),
+      listTasks(user.workspaceId, { projectId }),
+      listBudgetLines(projectId, user.workspaceId),
     ]);
 
     // A failure to write prose must not cost the user their report, so the AI
@@ -72,8 +72,8 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (wantsAi) {
       try {
         const [intro, risk] = await Promise.all([
-          generateSummary(projectId, "report_intro", user.id),
-          generateSummary(projectId, "risk_scan", user.id),
+          generateSummary(projectId, "report_intro", user.id, user.workspaceId),
+          generateSummary(projectId, "risk_scan", user.id, user.workspaceId),
         ]);
         executiveSummary = intro?.content ?? null;
         risks = risk?.content ?? null;

@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/auth";
+import { listMyWorkspaces } from "@/lib/db/workspace";
 import { Shell } from "@/components/layout/shell";
 
 /**
@@ -10,6 +11,11 @@ export default async function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const user = await requireUser();
+  const workspaces = await listMyWorkspaces(user.id);
 
-  return <Shell user={user}>{children}</Shell>;
+  return (
+    <Shell user={user} workspaces={workspaces}>
+      {children}
+    </Shell>
+  );
 }

@@ -44,7 +44,7 @@ export default async function ProjectsPage({
   const single = (key: string) =>
     (Array.isArray(params[key]) ? params[key][0] : params[key]) ?? undefined;
 
-  const { rows, total, pageCount } = await listProjects({
+  const { rows, total, pageCount } = await listProjects(user.workspaceId, {
     search: single("q"),
     status: single("status") as ProjectStatus | "all" | undefined,
     priority: single("priority") as Priority | "all" | undefined,

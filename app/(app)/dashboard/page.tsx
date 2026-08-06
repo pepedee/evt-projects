@@ -13,7 +13,7 @@ export const metadata = { title: "Dashboard · AI Project Tracker" };
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const data = await getDashboard();
+  const data = await getDashboard(user.workspaceId);
 
   return (
     <div className="space-y-6">

@@ -24,11 +24,16 @@ const TASK_COLUMNS =
 const TASK_WITH_PROJECT = `${TASK_COLUMNS}, projects(name, code, currency)`;
 
 export async function listTasks(
+  workspaceId: string,
   filters: TaskFilters = {},
 ): Promise<TaskWithProject[]> {
   const db = await createClient();
 
-  let query = db.from("tasks").select(TASK_WITH_PROJECT).is("deleted_at", null);
+  let query = db
+    .from("tasks")
+    .select(TASK_WITH_PROJECT)
+    .eq("workspace_id", workspaceId)
+    .is("deleted_at", null);
 
   if (filters.projectId) query = query.eq("project_id", filters.projectId);
   if (filters.status && filters.status !== "all") {
@@ -56,12 +61,16 @@ export async function listTasks(
   return data ?? [];
 }
 
-export async function getTask(id: string): Promise<TaskWithProject | null> {
+export async function getTask(
+  id: string,
+  workspaceId: string,
+): Promise<TaskWithProject | null> {
   const db = await createClient();
   const { data, error } = await db
     .from("tasks")
     .select(TASK_WITH_PROJECT)
     .eq("id", id)
+    .eq("workspace_id", workspaceId)
     .is("deleted_at", null)
     .maybeSingle<TaskWithProject>();
 

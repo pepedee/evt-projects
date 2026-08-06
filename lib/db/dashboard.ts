@@ -32,13 +32,13 @@ function addDays(iso: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-export async function getDashboard(): Promise<DashboardData> {
+export async function getDashboard(workspaceId: string): Promise<DashboardData> {
   const db = await createClient();
   const now = today();
 
   // One pass over projects covers the counts, the progress chart and the
   // budget meters — project_overview already carries every aggregate.
-  const { rows: projects } = await listProjects({ pageSize: 200 });
+  const { rows: projects } = await listProjects(workspaceId, { pageSize: 200 });
 
   const live = projects.filter(
     (p) => p.status !== "completed" && p.status !== "cancelled",
@@ -52,6 +52,7 @@ export async function getDashboard(): Promise<DashboardData> {
           "assignee_id, estimate_hours, spent_hours, start_date, due_date, " +
           "completed_at, sort_order, created_at, projects(name, code, currency)",
       )
+      .eq("workspace_id", workspaceId)
       .is("deleted_at", null)
       .not("status", "in", "(done,cancelled)")
       .not("due_date", "is", null)
@@ -63,6 +64,7 @@ export async function getDashboard(): Promise<DashboardData> {
     db
       .from("activity_logs")
       .select("id, entity, action, summary, created_at")
+      .eq("workspace_id", workspaceId)
       .order("created_at", { ascending: false })
       .limit(12)
       .returns<ActivityEntry[]>(),

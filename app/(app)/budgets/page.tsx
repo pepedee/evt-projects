@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireUser } from "@/lib/auth";
 import { listProjects } from "@/lib/db/projects";
 import { Card, EmptyState } from "@/components/ui/card";
 import { ProjectStatusBadge } from "@/components/shared/status-badge";
@@ -14,7 +15,8 @@ export const metadata = { title: "Budgets · AI Project Tracker" };
  * live inside each project, where the unit is known.
  */
 export default async function BudgetsPage() {
-  const { rows } = await listProjects({ pageSize: 100 });
+  const user = await requireUser();
+  const { rows } = await listProjects(user.workspaceId, { pageSize: 100 });
   const withBudget = rows.filter(
     (project) => project.planned_total > 0 || project.spent_total > 0,
   );
