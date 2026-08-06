@@ -5,7 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import {
   createBudgetLine,
   deleteBudgetLine,
-  updateBudgetLine,
+  patchBudgetLine,
 } from "@/app/(app)/budgets/actions";
 import { Button, Input, Notice } from "@/components/ui/form";
 import { EmptyState } from "@/components/ui/card";
@@ -58,27 +58,28 @@ export function BudgetLines({
   }
 
   /**
-   * Saved on blur, not on every keystroke — this is money, not a toggle.
+   * Saved on blur, not on every keystroke — this is money, not a toggle. Each
+   * field patches independently (patchBudgetLine only SETs the column
+   * given) rather than resending both fields from a snapshot — the same fix
+   * applied to ExpenseList's four-field row, needed here for the same
+   * reason: two fields editable on one row means two concurrent saves are
+   * possible, and a full-row resend lets the later one silently overwrite
+   * the earlier one's not-yet-landed edit with a stale value.
    *
-   * The category/amount inputs below deliberately do NOT use `disabled={pending}`
-   * the way the add form and delete button do: `pending` is one shared flag
-   * for the whole list, so disabling every input while any single row's save
-   * is in flight silently dropped a fast second edit mid-keystroke — caught
-   * live while verifying this feature.
+   * Also deliberately does NOT use `disabled={pending}` the way the add form
+   * and delete button do: `pending` is one shared flag for the whole list,
+   * so disabling every input while any single row's save is in flight
+   * silently dropped a fast second edit mid-keystroke — caught live while
+   * verifying this feature.
    */
-  function saveEdit(line: BudgetLine, patch: { category?: string; planned_amount?: string }) {
-    const nextCategory = patch.category ?? line.category;
-    const nextAmount = patch.planned_amount ?? String(line.planned_amount);
-    if (nextCategory === line.category && nextAmount === String(line.planned_amount)) {
-      return;
-    }
+  function saveEdit(
+    line: BudgetLine,
+    field: "category" | "planned_amount",
+    value: string,
+  ) {
+    if (value === String(line[field])) return;
     startTransition(async () => {
-      const result = await updateBudgetLine(line.id, {
-        project_id: projectId,
-        category: nextCategory,
-        description: line.description,
-        planned_amount: nextAmount,
-      });
+      const result = await patchBudgetLine(line.id, projectId, { [field]: value });
       if (!result.ok) setError(result.error);
     });
   }
@@ -111,7 +112,7 @@ export function BudgetLines({
                         // for every keystroke in between.
                         key={`category-${line.id}-${line.category}`}
                         defaultValue={line.category}
-                        onBlur={(e) => saveEdit(line, { category: e.target.value })}
+                        onBlur={(e) => saveEdit(line, "category", e.target.value)}
                         aria-label={`Category of ${line.category}`}
                         className="font-medium"
                       />
@@ -127,7 +128,7 @@ export function BudgetLines({
                       <Input
                         key={`amount-${line.id}-${line.planned_amount}`}
                         defaultValue={String(line.planned_amount)}
-                        onBlur={(e) => saveEdit(line, { planned_amount: e.target.value })}
+                        onBlur={(e) => saveEdit(line, "planned_amount", e.target.value)}
                         inputMode="decimal"
                         aria-label={`Planned amount for ${line.category}`}
                         className="text-right"
