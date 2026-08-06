@@ -6,8 +6,12 @@ import { getProject, listMilestones } from "@/lib/db/projects";
 import { listTasks } from "@/lib/db/tasks";
 import { listBudgetLines, listExpenses } from "@/lib/db/budgets";
 import { listDocuments } from "@/lib/db/documents";
+import { listMaterials } from "@/lib/db/materials";
+import { getQcGrid } from "@/lib/db/qc";
 import { BudgetLines } from "@/components/budgets/budget-lines";
 import { ExpenseList } from "@/components/budgets/expense-list";
+import { MaterialList } from "@/components/materials/material-list";
+import { QcGrid } from "@/components/qc/qc-grid";
 import { UploadButton } from "@/components/files/upload-button";
 import { DocumentList } from "@/components/files/document-list";
 import { SummaryPanel } from "@/components/ai/summary-panel";
@@ -36,13 +40,16 @@ export default async function ProjectDetailPage({
   const project = await getProject(id, user.workspaceId);
   if (!project) notFound();
 
-  const [milestones, tasks, budgetLines, expenses, documents] = await Promise.all([
-    listMilestones(id, user.workspaceId),
-    listTasks(user.workspaceId, { projectId: id }),
-    listBudgetLines(id, user.workspaceId),
-    listExpenses(id, user.workspaceId),
-    listDocuments(user.workspaceId, { projectId: id }),
-  ]);
+  const [milestones, tasks, budgetLines, expenses, documents, materials, qcGrid] =
+    await Promise.all([
+      listMilestones(id, user.workspaceId),
+      listTasks(user.workspaceId, { projectId: id }),
+      listBudgetLines(id, user.workspaceId),
+      listExpenses(id, user.workspaceId),
+      listDocuments(user.workspaceId, { projectId: id }),
+      listMaterials(id, user.workspaceId),
+      getQcGrid(id, user.workspaceId),
+    ]);
 
   const canEdit = can(user, "member");
   const canDelete = can(user, "admin");
@@ -192,6 +199,31 @@ export default async function ProjectDetailPage({
           currency={project.currency}
           expenses={expenses}
           lines={budgetLines}
+          canEdit={canEdit}
+          canDelete={canDelete}
+        />
+      </Card>
+
+      <Card
+        title="Materials"
+        description="Procurement status, separate from planned-vs-actual budget."
+      >
+        <MaterialList
+          projectId={project.id}
+          currency={project.currency}
+          materials={materials}
+          canEdit={canEdit}
+          canDelete={canDelete}
+        />
+      </Card>
+
+      <Card
+        title="QC Inspection Grid"
+        description="Work items down the side, physical units across the top — click a cell to record pass or fail."
+      >
+        <QcGrid
+          projectId={project.id}
+          grid={qcGrid}
           canEdit={canEdit}
           canDelete={canDelete}
         />

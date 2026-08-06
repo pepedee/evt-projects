@@ -14,8 +14,10 @@ for summaries · Supabase Auth (real accounts, restored 2026-08-05 — see
 
 **Core modules.** Dashboard (KPIs, charts, upcoming/overdue) · project and
 task management (kanban, milestones, server-derived progress/health) ·
-budgets (planned vs. actual) · file uploads (private bucket, signed URLs) ·
-AI summaries (status/risk/standup/report-intro, cached by input hash) · Word
+budgets (planned vs. actual) · materials/procurement (qty × unit cost,
+needed/ordered/received/installed) · QC inspection grid (work items × units,
+pass/fail per cell) · file uploads (private bucket, signed URLs) · AI
+summaries (status/risk/standup/report-intro, cached by input hash) · Word
 report generation (`docx`, generated from code).
 
 **Coding rules** are the "How to work here" section directly below: explain
@@ -92,6 +94,12 @@ all differ from your training data. Read the relevant guide in
   `progress_pct` and `health` are recomputed server-side from source rows.
 - **Nothing is hard deleted.** `projects` and `tasks` use `deleted_at`.
 - Money is `numeric(14,2)` plus an explicit `currency` column. Never a float.
+- **`qc_results` deletes at `member`, not `admin`** — the one table that
+  doesn't use `apply_workspace_rls()`'s default. Clearing a QC grid cell back
+  to "not yet inspected" is a real row delete (no third enum value for
+  blank), but it's routine data entry during inspection, not a destructive
+  action like deleting a whole budget line — gating it at `admin` would make
+  ordinary QC work require an elevated role for no real reason.
 
 ## Authentication
 
