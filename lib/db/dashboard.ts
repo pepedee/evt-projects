@@ -18,7 +18,7 @@ export interface DashboardData {
   openTasks: number;
   overdueTasks: number;
   atRiskProjects: number;
-  /** Active projects, most complete first, for the progress chart. */
+  /** Every live project with at least one task, most complete first. */
   progress: Project[];
   /** Projects that have a budget, for the meters. */
   budgets: Project[];
@@ -80,8 +80,7 @@ export async function getDashboard(workspaceId: string): Promise<DashboardData> 
     atRiskProjects: live.filter((p) => p.health !== "on_track").length,
     progress: live
       .filter((p) => p.task_total > 0)
-      .sort((a, b) => b.progress_pct - a.progress_pct)
-      .slice(0, 8),
+      .sort((a, b) => b.progress_pct - a.progress_pct),
     budgets: live
       .filter((p) => p.planned_total > 0)
       .sort(

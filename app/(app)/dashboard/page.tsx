@@ -3,7 +3,8 @@ import { requireUser } from "@/lib/auth";
 import { getDashboard } from "@/lib/db/dashboard";
 import { Card, EmptyState } from "@/components/ui/card";
 import { StatTile } from "@/components/dashboard/stat-tile";
-import { BudgetMeters, ProgressChart } from "@/components/dashboard/charts";
+import { BudgetMeters } from "@/components/dashboard/charts";
+import { ProgressFilter } from "@/components/dashboard/progress-filter";
 import { PriorityBadge } from "@/components/shared/status-badge";
 import { isOverdue } from "@/lib/tasks";
 import { formatDateTime, formatRelativeDays } from "@/lib/format";
@@ -51,7 +52,7 @@ export default async function DashboardPage() {
           title="Project progress"
           description="Share of tasks done, computed by the database."
         >
-          <ProgressChart projects={data.progress} />
+          <ProgressFilter projects={data.progress} />
         </Card>
 
         <Card
