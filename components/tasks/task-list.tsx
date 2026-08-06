@@ -2,7 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { createTask, deleteTask, setTaskStatus } from "@/app/(app)/tasks/actions";
+import {
+  createTask,
+  deleteTask,
+  setTaskDueDate,
+  setTaskStatus,
+} from "@/app/(app)/tasks/actions";
 import { Button, Input, Notice, Select } from "@/components/ui/form";
 import { EmptyState, Badge } from "@/components/ui/card";
 import { PriorityBadge } from "@/components/shared/status-badge";
@@ -67,6 +72,13 @@ export function TaskList({
     });
   }
 
+  function changeDueDate(id: string, value: string) {
+    startTransition(async () => {
+      const result = await setTaskDueDate(id, value || null);
+      if (!result.ok) setError(result.error);
+    });
+  }
+
   function remove(id: string) {
     startTransition(async () => {
       const result = await deleteTask(id);
@@ -108,6 +120,19 @@ export function TaskList({
                 )}
               </p>
             </div>
+
+            {canEdit ? (
+              <Input
+                type="date"
+                value={task.due_date ?? ""}
+                disabled={pending}
+                onChange={(e) => changeDueDate(task.id, e.target.value)}
+                className="w-40"
+                aria-label={`Due date of ${task.title}`}
+              />
+            ) : (
+              task.due_date && <span className="text-sm text-muted">{task.due_date}</span>
+            )}
 
             {canEdit ? (
               <Select

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { setTaskStatus } from "@/app/(app)/tasks/actions";
-import { Notice, Select } from "@/components/ui/form";
+import { setTaskDueDate, setTaskStatus } from "@/app/(app)/tasks/actions";
+import { Input, Notice, Select } from "@/components/ui/form";
 import { Badge } from "@/components/ui/card";
 import { PriorityBadge } from "@/components/shared/status-badge";
 import {
@@ -34,6 +34,13 @@ export function TaskBoard({
   function move(id: string, status: TaskStatus) {
     startTransition(async () => {
       const result = await setTaskStatus(id, status);
+      if (!result.ok) setError(result.error);
+    });
+  }
+
+  function changeDueDate(id: string, value: string) {
+    startTransition(async () => {
+      const result = await setTaskDueDate(id, value || null);
       if (!result.ok) setError(result.error);
     });
   }
@@ -91,6 +98,17 @@ export function TaskBoard({
                       >
                         {formatRelativeDays(task.due_date)}
                       </p>
+                    )}
+
+                    {canEdit && (
+                      <Input
+                        type="date"
+                        value={task.due_date ?? ""}
+                        disabled={pending}
+                        onChange={(e) => changeDueDate(task.id, e.target.value)}
+                        className="mt-2 text-xs"
+                        aria-label={`Due date of ${task.title}`}
+                      />
                     )}
 
                     {canEdit && (

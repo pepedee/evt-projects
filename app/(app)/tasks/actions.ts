@@ -138,6 +138,42 @@ export async function updateTask(
   }
 }
 
+/** Quick inline edit from the task list — no due date yet, or changing one. */
+export async function setTaskDueDate(
+  id: string,
+  dueDate: string | null,
+): Promise<ActionResult> {
+  try {
+    const user = await requireRole("member");
+    const db = await createClient();
+
+    const { data, error } = await db
+      .from("tasks")
+      .update({ due_date: dueDate || null })
+      .eq("id", id)
+      .select("project_id, title")
+      .single<{ project_id: string; title: string }>();
+
+    if (error) throw new Error(error.message);
+
+    await logActivity(user, {
+      entity: "task",
+      entityId: id,
+      action: "update",
+      summary: dueDate
+        ? `Set due date on "${data.title}"`
+        : `Cleared due date on "${data.title}"`,
+    });
+
+    revalidatePath("/tasks");
+    revalidatePath(`/projects/${data.project_id}`);
+    revalidatePath("/dashboard");
+    return { ok: true };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
 /** The kanban board's only write: move a card to another column. */
 export async function setTaskStatus(
   id: string,
