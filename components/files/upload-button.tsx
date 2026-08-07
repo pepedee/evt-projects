@@ -3,28 +3,37 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Upload } from "lucide-react";
+import { createAuthClient } from "@/lib/supabase/client";
+import { recordDocument } from "@/app/(app)/files/actions";
 import { Button, Notice, Select } from "@/components/ui/form";
 import {
   ACCEPT_ATTRIBUTE,
   validateFile,
+  buildStoragePath,
+  BUCKET,
   DOCUMENT_CATEGORIES,
   DOCUMENT_CATEGORY_LABEL,
   type DocumentCategory,
 } from "@/lib/storage";
 
 /**
- * Posts the file to /api/upload, which stores it and records the metadata.
- *
- * The category picked here decides which section of the handover report
- * (lib/reports/handover.ts) the file lands in — see 0014_handover_report.sql.
- * Uploads go through the server rather than straight to Supabase Storage so
- * validation and the category tag both happen in one place.
+ * Uploads straight from the browser to Supabase Storage, then calls
+ * recordDocument to log the metadata — not a round trip through a Vercel
+ * function. That used to be a POST to /api/upload, which proxied the file
+ * bytes through a serverless function; Vercel's Node.js runtime caps a
+ * function's request body at 4.5 MB regardless of what this app's own
+ * 20 MB limit (lib/storage.ts, matching the bucket's file_size_limit) says,
+ * so anything in between failed with a 413 the app's own validation never
+ * even got a chance to reject cleanly. Storage RLS (0011_storage.sql) reads
+ * workspace membership out of the object path exactly the same way whether
+ * the request comes from the browser or a server — that boundary was never
+ * the reason to proxy through the server in the first place.
  */
 export function UploadButton({
+  workspaceId,
   projectId = null,
 }: {
-  /** Accepted for call-site compatibility; the server decides the workspace. */
-  workspaceId?: string;
+  workspaceId: string;
   projectId?: string | null;
 }) {
   const router = useRouter();
@@ -49,19 +58,36 @@ export function UploadButton({
 
     setBusy(true);
 
-    const body = new FormData();
-    body.set("file", file);
-    body.set("category", category);
-    if (projectId) body.set("projectId", projectId);
+    const path = buildStoragePath(workspaceId, projectId, file.name);
+    const supabase = createAuthClient();
 
     try {
-      const response = await fetch("/api/upload", { method: "POST", body });
-      const payload = await response.json().catch(() => null);
+      const { error: uploadError } = await supabase.storage
+        .from(BUCKET)
+        .upload(path, file, { contentType: file.type, upsert: false });
 
-      if (!response.ok) {
-        setError(payload?.error ?? `Upload failed (${response.status})`);
+      if (uploadError) {
+        setError(uploadError.message);
         return;
       }
+
+      const result = await recordDocument({
+        project_id: projectId ?? "",
+        file_name: file.name,
+        storage_path: path,
+        mime_type: file.type as Parameters<typeof recordDocument>[0]["mime_type"],
+        size_bytes: file.size,
+        category,
+        description: "",
+      });
+
+      if (!result.ok) {
+        // Do not leave bytes behind that no row points at.
+        await supabase.storage.from(BUCKET).remove([path]);
+        setError(result.error);
+        return;
+      }
+
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed.");

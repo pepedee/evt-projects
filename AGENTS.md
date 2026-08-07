@@ -81,6 +81,20 @@ all differ from your training data. Read the relevant guide in
   OR REPLACE VIEW` only appends at the very end, so if the new column isn't
   the last one on the table, replace won't work — drop and recreate, see
   0016 for the pattern).
+- **File uploads go straight from the browser to Supabase Storage, never
+  through a Vercel function.** `components/files/upload-button.tsx` calls
+  `storage.upload()` with the browser Supabase client, then `recordDocument`
+  (a server action) to log the metadata — there is no `/api/upload` route.
+  There used to be one, proxying the file bytes server-side "so validation
+  happens in one place"; it silently broke every upload between ~4.5 MB and
+  this app's own 20 MB limit with a 413, because Vercel's Node.js Serverless
+  Functions cap a request body at 4.5 MB regardless of what the app's own
+  `MAX_UPLOAD_BYTES` or the bucket's `file_size_limit` say — a platform
+  ceiling, not configurable away, and invisible on `npm run dev` since
+  localhost has no such limit. Storage RLS (0011_storage.sql) reads workspace
+  membership out of the object path the same way regardless of whether the
+  request comes from the browser or a server, so proxying through the server
+  was never actually buying any security — don't reintroduce it.
 
 ## Architecture rules
 
