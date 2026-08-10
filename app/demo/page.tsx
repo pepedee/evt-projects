@@ -63,7 +63,7 @@ export default function DemoPage() {
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Dashboard</h2>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatTile label="Active projects" value={2} />
           <StatTile label="Open tasks" value={22} />
           <StatTile label="Overdue" value={4} tone="critical" />
@@ -75,7 +75,7 @@ export default function DemoPage() {
           />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card
             title="Project progress"
             description="Share of tasks done, computed by the database."
@@ -91,7 +91,7 @@ export default function DemoPage() {
           </Card>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card title="Due soon" description="Overdue and due in the next two weeks.">
             <ul className="divide-y divide-border">
               {upcoming.map((task) => (
@@ -135,7 +135,7 @@ export default function DemoPage() {
       {/* -------------------------------------------------------- projects */}
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Projects</h2>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {projects.map((project) => (
             <Card key={project.id} className="h-full p-5">
               <div className="flex items-start gap-3">
@@ -177,7 +177,7 @@ export default function DemoPage() {
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Project detail — {ct.code}</h2>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Card className="p-5">
             <p className="text-sm text-muted">Budget planned</p>
             <p className="mt-2 text-2xl font-semibold">

@@ -157,7 +157,7 @@ export function Shell({
             <Menu className="size-4" />
           </button>
 
-          <div className="flex-1 lg:hidden">{workspaceLabel}</div>
+          <div className="min-w-0 flex-1 lg:hidden">{workspaceLabel}</div>
 
           <div className="ml-auto flex items-center gap-1">
             <ThemeStyleSwitcher />

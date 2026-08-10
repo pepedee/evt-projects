@@ -7,7 +7,7 @@ export default function ProjectsLoading() {
       <Skeleton className="h-7 w-40" />
       <Skeleton className="h-16 w-full" />
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="rounded-2xl border border-border bg-surface p-5">
             <Skeleton className="h-5 w-2/3" />

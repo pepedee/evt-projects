@@ -90,7 +90,7 @@ export function ProjectForm({ project }: { project?: Project }) {
         />
       </Field>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Code" hint="Short reference, e.g. CT-02.">
           <Input value={form.code} onChange={(e) => set("code", e.target.value)} />
         </Field>
@@ -102,7 +102,7 @@ export function ProjectForm({ project }: { project?: Project }) {
         </Field>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Quotation date" hint="When the quotation was issued.">
           <Input
             type="date"
@@ -125,7 +125,7 @@ export function ProjectForm({ project }: { project?: Project }) {
         />
       </Field>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Status">
           <Select
             value={form.status}
@@ -151,7 +151,7 @@ export function ProjectForm({ project }: { project?: Project }) {
         </Field>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Start date">
           <Input
             type="date"
@@ -168,7 +168,7 @@ export function ProjectForm({ project }: { project?: Project }) {
         </Field>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field
           label="Currency"
           hint="Budget lines and expenses all use this."

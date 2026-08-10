@@ -107,6 +107,17 @@ all differ from your training data. Read the relevant guide in
   `x-vercel-id` on a real request (`sin1::syd1::...`, second segment is
   where the function actually ran) to confirm, don't assume from the config
   alone.
+- **A responsive grid always needs an explicit base `grid-cols-N`, not just
+  the breakpoint variants.** `className="grid gap-4 sm:grid-cols-2"` looks
+  right but below `sm` there's no `grid-template-columns` at all — the
+  browser falls back to an implicit track sized by content (`auto`), which
+  can grow past the container instead of being capped the way an explicit
+  `grid-cols-1` (`minmax(0,1fr)`) would. Bit us for real on the Projects
+  card grid: the grid container measured correctly at 343px, but the card
+  inside it rendered at 444px, clipping content off the right edge of the
+  screen on a phone. Every `grid ... sm:grid-cols-N` / `md:grid-cols-N` /
+  `lg:grid-cols-N` in this app now starts with `grid-cols-1` — keep that
+  pattern for any new one.
 
 ## Architecture rules
 

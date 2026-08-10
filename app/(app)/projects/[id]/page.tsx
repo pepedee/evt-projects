@@ -116,7 +116,7 @@ export default async function ProjectDetailPage({
         </Card>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Progress" value={`${project.progress_pct}%`}>
           <ProgressBar value={project.progress_pct} />
         </Stat>
@@ -132,7 +132,7 @@ export default async function ProjectDetailPage({
         <Stat label="Target date" value={formatDate(project.target_date)} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Stat
           label="Budget planned"
           value={formatMoney(project.planned_total, project.currency)}

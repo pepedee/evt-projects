@@ -7,7 +7,7 @@ export default function TasksLoading() {
       <Skeleton className="h-7 w-32" />
       <Skeleton className="h-16 w-full" />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="rounded-2xl border border-border bg-surface">
             <div className="border-b border-border px-4 py-3">

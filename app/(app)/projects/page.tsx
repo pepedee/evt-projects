@@ -94,7 +94,7 @@ export default async function ProjectsPage({
           <EmptyState message="No projects match these filters." />
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {rows.map((project) => (
             <Link key={project.id} href={`/projects/${project.id}`}>
               <Card className="h-full p-5 transition hover:border-primary">
