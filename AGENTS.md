@@ -95,6 +95,18 @@ all differ from your training data. Read the relevant guide in
   membership out of the object path the same way regardless of whether the
   request comes from the browser or a server, so proxying through the server
   was never actually buying any security — don't reintroduce it.
+- **`vercel.json` pins serverless functions to `syd1` (Sydney) — do not
+  remove it.** The database (`SUPABASE_DB_URL`'s pooler hostname) has always
+  lived in `ap-southeast-2`; without this file Vercel defaults functions to
+  `iad1` (US East). Since almost every route here is server-rendered against
+  the database, that mismatch meant every page load paid a Virginia↔Sydney
+  round trip on top of the visitor's own — measured live at ~2.2s average
+  for the dashboard before this file existed, ~0.5s after. Invisible on
+  `npm run dev`, since localhost has no region to mismatch. If the Supabase
+  project ever moves region, update `regions` here to match — check
+  `x-vercel-id` on a real request (`sin1::syd1::...`, second segment is
+  where the function actually ran) to confirm, don't assume from the config
+  alone.
 
 ## Architecture rules
 
