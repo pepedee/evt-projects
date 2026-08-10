@@ -9,6 +9,7 @@ import {
 } from "@/app/(app)/budgets/actions";
 import { Button, Input, Notice } from "@/components/ui/form";
 import { EmptyState } from "@/components/ui/card";
+import { Tooltip } from "@/components/ui/tooltip";
 import { formatMoney } from "@/lib/format";
 import type { BudgetLine } from "@/lib/db/budgets";
 
@@ -151,15 +152,17 @@ export function BudgetLines({
                   </td>
                   {canDelete && (
                     <td className="px-5 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => remove(line.id)}
-                        disabled={pending}
-                        aria-label={`Delete ${line.category}`}
-                        className="rounded-lg p-1.5 text-muted transition hover:bg-surface-2 hover:text-danger"
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
+                      <Tooltip label={`Delete ${line.category}`}>
+                        <button
+                          type="button"
+                          onClick={() => remove(line.id)}
+                          disabled={pending}
+                          aria-label={`Delete ${line.category}`}
+                          className="rounded-lg p-1.5 text-muted transition hover:bg-surface-2 hover:text-danger"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </Tooltip>
                     </td>
                   )}
                 </tr>

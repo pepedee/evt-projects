@@ -9,6 +9,7 @@ import {
 } from "@/app/(app)/projects/actions";
 import { Button, Input, Notice, Select } from "@/components/ui/form";
 import { EmptyState } from "@/components/ui/card";
+import { Tooltip } from "@/components/ui/tooltip";
 import { formatDate } from "@/lib/format";
 import type { Milestone } from "@/lib/db/projects";
 import type { MilestoneStatus } from "@/lib/types";
@@ -95,15 +96,17 @@ export function MilestoneList({
             )}
 
             {canDelete && (
-              <button
-                type="button"
-                onClick={() => remove(milestone.id)}
-                disabled={pending}
-                aria-label={`Delete ${milestone.name}`}
-                className="rounded-lg p-2 text-muted transition hover:bg-surface-2 hover:text-danger"
-              >
-                <Trash2 className="size-4" />
-              </button>
+              <Tooltip label={`Delete ${milestone.name}`}>
+                <button
+                  type="button"
+                  onClick={() => remove(milestone.id)}
+                  disabled={pending}
+                  aria-label={`Delete ${milestone.name}`}
+                  className="rounded-lg p-2 text-muted transition hover:bg-surface-2 hover:text-danger"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              </Tooltip>
             )}
           </div>
         ))

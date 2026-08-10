@@ -5,6 +5,7 @@ import { Download, FileText, Trash2 } from "lucide-react";
 import { deleteDocument, getDocumentUrl } from "@/app/(app)/files/actions";
 import { Notice } from "@/components/ui/form";
 import { EmptyState, Badge } from "@/components/ui/card";
+import { Tooltip } from "@/components/ui/tooltip";
 import { formatBytes, DOCUMENT_CATEGORY_LABEL } from "@/lib/storage";
 import { formatDateTime } from "@/lib/format";
 import type { DocumentRow } from "@/lib/db/documents";
@@ -69,26 +70,30 @@ export function DocumentList({
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => download(doc.id)}
-              disabled={pending}
-              aria-label={`Download ${doc.file_name}`}
-              className="rounded-lg p-2 text-muted transition hover:bg-surface-2 hover:text-foreground"
-            >
-              <Download className="size-4" />
-            </button>
-
-            {canDelete && (
+            <Tooltip label={`Download ${doc.file_name}`}>
               <button
                 type="button"
-                onClick={() => remove(doc.id)}
+                onClick={() => download(doc.id)}
                 disabled={pending}
-                aria-label={`Delete ${doc.file_name}`}
-                className="rounded-lg p-2 text-muted transition hover:bg-surface-2 hover:text-danger"
+                aria-label={`Download ${doc.file_name}`}
+                className="rounded-lg p-2 text-muted transition hover:bg-surface-2 hover:text-foreground"
               >
-                <Trash2 className="size-4" />
+                <Download className="size-4" />
               </button>
+            </Tooltip>
+
+            {canDelete && (
+              <Tooltip label={`Delete ${doc.file_name}`}>
+                <button
+                  type="button"
+                  onClick={() => remove(doc.id)}
+                  disabled={pending}
+                  aria-label={`Delete ${doc.file_name}`}
+                  className="rounded-lg p-2 text-muted transition hover:bg-surface-2 hover:text-danger"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              </Tooltip>
             )}
           </div>
         ))}

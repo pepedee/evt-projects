@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { createExpense, deleteExpense, patchExpense } from "@/app/(app)/budgets/actions";
 import { Button, Input, Notice, Select } from "@/components/ui/form";
 import { EmptyState } from "@/components/ui/card";
+import { Tooltip } from "@/components/ui/tooltip";
 import { formatDate, formatMoney } from "@/lib/format";
 import type { BudgetLine, Expense } from "@/lib/db/budgets";
 
@@ -139,15 +140,17 @@ export function ExpenseList({
                   className="w-28 text-right"
                 />
                 {canDelete && (
-                  <button
-                    type="button"
-                    onClick={() => remove(expense.id)}
-                    disabled={pending}
-                    aria-label={`Delete ${expense.description}`}
-                    className="rounded-lg p-1.5 text-muted transition hover:bg-surface-2 hover:text-danger"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
+                  <Tooltip label={`Delete ${expense.description}`}>
+                    <button
+                      type="button"
+                      onClick={() => remove(expense.id)}
+                      disabled={pending}
+                      aria-label={`Delete ${expense.description}`}
+                      className="rounded-lg p-1.5 text-muted transition hover:bg-surface-2 hover:text-danger"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </Tooltip>
                 )}
               </div>
             ) : (

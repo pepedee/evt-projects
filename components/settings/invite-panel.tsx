@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { UserPlus, X } from "lucide-react";
 import { cancelInvite, inviteMember } from "@/app/(app)/settings/actions";
 import { Button, Input, Notice, Select } from "@/components/ui/form";
+import { Tooltip } from "@/components/ui/tooltip";
 import { ROLE_LABEL, type Role } from "@/lib/types";
 import { formatDate } from "@/lib/format";
 import type { PendingInvite } from "@/lib/db/workspace";
@@ -62,15 +63,17 @@ export function InvitePanel({
                   pending
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => cancel(inv.id)}
-                disabled={pending}
-                aria-label={`Cancel invite for ${inv.email}`}
-                className="rounded-lg p-1.5 text-muted transition hover:bg-surface-2 hover:text-danger"
-              >
-                <X className="size-4" />
-              </button>
+              <Tooltip label={`Cancel invite for ${inv.email}`}>
+                <button
+                  type="button"
+                  onClick={() => cancel(inv.id)}
+                  disabled={pending}
+                  aria-label={`Cancel invite for ${inv.email}`}
+                  className="rounded-lg p-1.5 text-muted transition hover:bg-surface-2 hover:text-danger"
+                >
+                  <X className="size-4" />
+                </button>
+              </Tooltip>
             </li>
           ))}
         </ul>

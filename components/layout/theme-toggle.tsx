@@ -1,6 +1,7 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
+import { Tooltip } from "@/components/ui/tooltip";
 
 /**
  * Flips the `dark` class on <html> and remembers the choice, so the user can
@@ -23,14 +24,16 @@ export function ThemeToggle() {
   }
 
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      aria-label="Toggle light or dark theme"
-      className="rounded-lg p-2 text-muted transition hover:bg-surface-2 hover:text-foreground"
-    >
-      <Moon className="size-4 dark:hidden" />
-      <Sun className="hidden size-4 dark:block" />
-    </button>
+    <Tooltip label="Toggle light or dark theme">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label="Toggle light or dark theme"
+        className="rounded-lg p-2 text-muted transition hover:bg-surface-2 hover:text-foreground"
+      >
+        <Moon className="size-4 dark:hidden" />
+        <Sun className="hidden size-4 dark:block" />
+      </button>
+    </Tooltip>
   );
 }

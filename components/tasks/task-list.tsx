@@ -10,6 +10,7 @@ import {
 } from "@/app/(app)/tasks/actions";
 import { Button, Input, Notice, Select } from "@/components/ui/form";
 import { EmptyState, Badge } from "@/components/ui/card";
+import { Tooltip } from "@/components/ui/tooltip";
 import { PriorityBadge } from "@/components/shared/status-badge";
 import { isOverdue, type TaskWithProject } from "@/lib/tasks";
 import { formatRelativeDays } from "@/lib/format";
@@ -153,15 +154,17 @@ export function TaskList({
             )}
 
             {canDelete && (
-              <button
-                type="button"
-                onClick={() => remove(task.id)}
-                disabled={pending}
-                aria-label={`Archive ${task.title}`}
-                className="rounded-lg p-2 text-muted transition hover:bg-surface-2 hover:text-danger"
-              >
-                <Trash2 className="size-4" />
-              </button>
+              <Tooltip label={`Archive ${task.title}`}>
+                <button
+                  type="button"
+                  onClick={() => remove(task.id)}
+                  disabled={pending}
+                  aria-label={`Archive ${task.title}`}
+                  className="rounded-lg p-2 text-muted transition hover:bg-surface-2 hover:text-danger"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              </Tooltip>
             )}
           </div>
         ))

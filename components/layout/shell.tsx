@@ -10,6 +10,7 @@ import { ROLE_LABEL, type SessionUser } from "@/lib/types";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { ThemeStyleSwitcher } from "@/components/layout/theme-style-switcher";
 import { Select } from "@/components/ui/form";
+import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { MyWorkspace } from "@/lib/db/workspace";
 
@@ -162,13 +163,15 @@ export function Shell({
             <ThemeStyleSwitcher />
             <ThemeToggle />
             <form action="/auth/signout" method="post">
-              <button
-                type="submit"
-                aria-label="Sign out"
-                className="flex items-center gap-2 rounded-lg p-2 text-muted transition hover:bg-surface-2 hover:text-foreground"
-              >
-                <LogOut className="size-4" />
-              </button>
+              <Tooltip label="Sign out">
+                <button
+                  type="submit"
+                  aria-label="Sign out"
+                  className="flex items-center gap-2 rounded-lg p-2 text-muted transition hover:bg-surface-2 hover:text-foreground"
+                >
+                  <LogOut className="size-4" />
+                </button>
+              </Tooltip>
             </form>
           </div>
         </header>

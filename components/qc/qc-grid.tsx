@@ -11,6 +11,7 @@ import {
 } from "@/app/(app)/qc/actions";
 import { Button, Input, Notice } from "@/components/ui/form";
 import { EmptyState } from "@/components/ui/card";
+import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { QcCellResult, QcGrid as QcGridData } from "@/lib/db/qc";
 
@@ -129,15 +130,17 @@ export function QcGrid({
                       {u.label}
                     </span>
                     {canDelete && (
-                      <button
-                        type="button"
-                        onClick={() => removeUnit(u.id)}
-                        disabled={pending}
-                        aria-label={`Delete unit ${u.label}`}
-                        className="mx-auto mt-0.5 block text-muted hover:text-danger"
-                      >
-                        <Trash2 className="size-3" />
-                      </button>
+                      <Tooltip label={`Delete unit ${u.label}`} className="mx-auto mt-0.5 block">
+                        <button
+                          type="button"
+                          onClick={() => removeUnit(u.id)}
+                          disabled={pending}
+                          aria-label={`Delete unit ${u.label}`}
+                          className="text-muted hover:text-danger"
+                        >
+                          <Trash2 className="size-3" />
+                        </button>
+                      </Tooltip>
                     )}
                   </th>
                 ))}
@@ -153,33 +156,38 @@ export function QcGrid({
                     {item.item_no ? `${item.item_no}. ` : ""}
                     {item.description}
                     {canDelete && (
-                      <button
-                        type="button"
-                        onClick={() => removeItem(item.id)}
-                        disabled={pending}
-                        aria-label={`Delete QC item ${item.description}`}
-                        className="ml-1.5 inline text-muted hover:text-danger"
-                      >
-                        <Trash2 className="inline size-3" />
-                      </button>
+                      <Tooltip label={`Delete QC item ${item.description}`} className="ml-1.5">
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.id)}
+                          disabled={pending}
+                          aria-label={`Delete QC item ${item.description}`}
+                          className="text-muted hover:text-danger"
+                        >
+                          <Trash2 className="inline size-3" />
+                        </button>
+                      </Tooltip>
                     )}
                   </td>
                   {grid.units.map((u) => {
                     const cell = resultMap.get(`${item.id}:${u.id}`);
+                    const cellLabel = `${u.label}: ${cell === "pass" ? "Passed" : cell === "fail" ? "Failed" : "Not recorded"}`;
                     return (
                       <td key={u.id} className="p-0">
-                        <button
-                          type="button"
-                          disabled={!canEdit}
-                          onClick={() => cycleCell(item.id, u.id)}
-                          aria-label={`${u.label}: ${cell === "pass" ? "Passed" : cell === "fail" ? "Failed" : "Not recorded"}`}
-                          className={cn(
-                            "size-6 rounded-sm bg-surface-2 transition disabled:cursor-default",
-                            canEdit && "hover:ring-2 hover:ring-ring",
-                            cell === "pass" && "bg-success",
-                            cell === "fail" && "bg-danger",
-                          )}
-                        />
+                        <Tooltip label={cellLabel}>
+                          <button
+                            type="button"
+                            disabled={!canEdit}
+                            onClick={() => cycleCell(item.id, u.id)}
+                            aria-label={cellLabel}
+                            className={cn(
+                              "size-6 rounded-sm bg-surface-2 transition disabled:cursor-default",
+                              canEdit && "hover:ring-2 hover:ring-ring",
+                              cell === "pass" && "bg-success",
+                              cell === "fail" && "bg-danger",
+                            )}
+                          />
+                        </Tooltip>
                       </td>
                     );
                   })}

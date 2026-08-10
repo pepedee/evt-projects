@@ -9,6 +9,7 @@ import {
 } from "@/app/(app)/materials/actions";
 import { Button, Input, Notice, Select } from "@/components/ui/form";
 import { EmptyState } from "@/components/ui/card";
+import { Tooltip } from "@/components/ui/tooltip";
 import { formatMoney } from "@/lib/format";
 import type { Material, MaterialStatus } from "@/lib/db/materials";
 
@@ -179,15 +180,17 @@ export function MaterialList({
                   </td>
                   {canDelete && (
                     <td className="px-5 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => remove(m.id)}
-                        disabled={pending}
-                        aria-label={`Delete ${m.name}`}
-                        className="rounded-lg p-1.5 text-muted transition hover:bg-surface-2 hover:text-danger"
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
+                      <Tooltip label={`Delete ${m.name}`}>
+                        <button
+                          type="button"
+                          onClick={() => remove(m.id)}
+                          disabled={pending}
+                          aria-label={`Delete ${m.name}`}
+                          className="rounded-lg p-1.5 text-muted transition hover:bg-surface-2 hover:text-danger"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </Tooltip>
                     </td>
                   )}
                 </tr>

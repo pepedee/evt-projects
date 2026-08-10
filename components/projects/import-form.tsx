@@ -6,6 +6,7 @@ import { Trash2, Upload } from "lucide-react";
 import { createProjectFromImport } from "@/app/(app)/projects/actions";
 import { Button, Field, Input, Notice, Textarea } from "@/components/ui/form";
 import { Card } from "@/components/ui/card";
+import { Tooltip } from "@/components/ui/tooltip";
 
 interface DraftBudgetLine {
   category: string;
@@ -292,14 +293,16 @@ export function ImportForm() {
                   inputMode="decimal"
                   className="w-32"
                 />
-                <button
-                  type="button"
-                  onClick={() => removeBudgetLine(i)}
-                  aria-label="Remove budget line"
-                  className="rounded-lg p-2 text-muted transition hover:bg-surface-2 hover:text-danger"
-                >
-                  <Trash2 className="size-4" />
-                </button>
+                <Tooltip label="Remove budget line">
+                  <button
+                    type="button"
+                    onClick={() => removeBudgetLine(i)}
+                    aria-label="Remove budget line"
+                    className="rounded-lg p-2 text-muted transition hover:bg-surface-2 hover:text-danger"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </Tooltip>
               </div>
             ))}
           </div>
@@ -331,14 +334,16 @@ export function ImportForm() {
                   placeholder="Description (optional)"
                   className="min-w-40 flex-[2]"
                 />
-                <button
-                  type="button"
-                  onClick={() => removeTask(i)}
-                  aria-label="Remove task"
-                  className="rounded-lg p-2 text-muted transition hover:bg-surface-2 hover:text-danger"
-                >
-                  <Trash2 className="size-4" />
-                </button>
+                <Tooltip label="Remove task">
+                  <button
+                    type="button"
+                    onClick={() => removeTask(i)}
+                    aria-label="Remove task"
+                    className="rounded-lg p-2 text-muted transition hover:bg-surface-2 hover:text-danger"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </Tooltip>
               </div>
             ))}
           </div>
