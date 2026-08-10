@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { logActivity } from "@/lib/audit";
 import { fail, type ActionResult } from "@/lib/types";
+import { draftMilestoneSchema, parseMsProjectXml, type DraftMilestone } from "@/lib/import/msproject";
 
 /** Empty date inputs arrive as "" — store them as NULL, not as an empty date. */
 const optionalDate = z
@@ -382,6 +383,79 @@ export async function deleteMilestone(
 
     revalidatePath(`/projects/${projectId}`);
     return { ok: true, message: "Milestone deleted." };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+/**
+ * Reads an MS Project "Save As > XML" export and returns the milestones it
+ * finds — nothing is written yet. Deterministic parsing, not AI: this
+ * format's schema is documented and plain, unlike a PDF layout.
+ */
+export async function parseMsProjectMilestones(
+  formData: FormData,
+): Promise<{ ok: true; milestones: DraftMilestone[] } | { ok: false; error: string }> {
+  try {
+    await requireRole("member");
+
+    const file = formData.get("file");
+    if (!(file instanceof File)) {
+      return { ok: false, error: "No file received." };
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      return { ok: false, error: "That file is larger than the 20MB limit." };
+    }
+
+    const text = await file.text();
+    const milestones = parseMsProjectXml(text);
+    if (milestones.length === 0) {
+      return {
+        ok: false,
+        error: "No milestones found — check that some tasks are actually flagged as milestones in MS Project.",
+      };
+    }
+    return { ok: true, milestones };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/** Bulk-saves the milestones a person kept after reviewing the parsed file. */
+export async function importMilestones(
+  projectId: string,
+  milestones: DraftMilestone[],
+): Promise<ActionResult> {
+  try {
+    const rows: z.infer<typeof draftMilestoneSchema>[] = [];
+    for (const m of milestones) {
+      const parsed = draftMilestoneSchema.safeParse(m);
+      if (!parsed.success) {
+        return { ok: false, error: parsed.error.issues[0].message };
+      }
+      rows.push(parsed.data);
+    }
+    if (rows.length === 0) {
+      return { ok: false, error: "Nothing to import." };
+    }
+
+    const user = await requireRole("member");
+    const db = await createClient();
+
+    const { error } = await db.from("milestones").insert(
+      rows.map((m) => ({ ...m, project_id: projectId })),
+    );
+    if (error) throw new Error(error.message);
+
+    await logActivity(user, {
+      entity: "milestone",
+      entityId: projectId,
+      action: "create",
+      summary: `Imported ${rows.length} milestone${rows.length === 1 ? "" : "s"} from MS Project`,
+    });
+
+    revalidatePath(`/projects/${projectId}`);
+    return { ok: true, message: `${rows.length} milestone${rows.length === 1 ? "" : "s"} imported.` };
   } catch (err) {
     return fail(err);
   }

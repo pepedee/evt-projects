@@ -40,3 +40,4 @@ supabase/.temp
 # real client business documents (quotations, invoices, receipts) — never
 # belongs in source control, committed or not
 /_Projects/
+/_Documents_Report/

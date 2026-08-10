@@ -17,6 +17,7 @@
     "@supabase/supabase-js": "^2.110.5",
     "clsx": "^2.1.1",
     "docx": "^9.7.1",
+    "fast-xml-parser": "^5.10.1",
     "image-size": "^2.0.2",
     "lucide-react": "^0.545.0",
     "next": "^16.3.0",
