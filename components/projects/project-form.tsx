@@ -16,6 +16,7 @@ interface FormState {
   status: string;
   priority: string;
   currency: string;
+  quotation_date: string;
   start_date: string;
   target_date: string;
   health_override: string;
@@ -32,6 +33,7 @@ function initialState(project?: Project): FormState {
     status: project?.status ?? "planning",
     priority: project?.priority ?? "medium",
     currency: project?.currency ?? "THB",
+    quotation_date: project?.quotation_date ?? "",
     start_date: project?.start_date ?? "",
     target_date: project?.target_date ?? "",
     health_override: project?.health_override ?? "",
@@ -100,12 +102,21 @@ export function ProjectForm({ project }: { project?: Project }) {
         </Field>
       </div>
 
-      <Field label="Location" hint="Site name and/or address, for the handover report.">
-        <Input
-          value={form.location}
-          onChange={(e) => set("location", e.target.value)}
-        />
-      </Field>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Quotation date" hint="When the quotation was issued.">
+          <Input
+            type="date"
+            value={form.quotation_date}
+            onChange={(e) => set("quotation_date", e.target.value)}
+          />
+        </Field>
+        <Field label="Location" hint="Site name and/or address, for the handover report.">
+          <Input
+            value={form.location}
+            onChange={(e) => set("location", e.target.value)}
+          />
+        </Field>
+      </div>
 
       <Field label="Description">
         <Textarea

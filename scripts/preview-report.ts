@@ -35,6 +35,7 @@ const project: Project = {
   description:
     "Replace corroded pipe supports on cooling tower CT-02 and re-certify the assembly.\n\nWork is staged around the plant shutdown window.",
   location: "Northern Refinery site, Rayong",
+  quotation_date: day(-60),
   status: "active",
   priority: "high",
   health_override: null,

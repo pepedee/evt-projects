@@ -27,6 +27,15 @@ export const importedProjectSchema = z.object({
   code: z.string().trim().nullable().default(null),
   client_name: z.string().trim().nullable().default(null),
   location: z.string().trim().nullable().default(null),
+  // Coerced to null rather than failing the whole extraction if the model
+  // returns something that isn't a clean ISO date — this field is a nice-to-
+  // have the user can fill in by hand, not worth losing everything else over.
+  quotation_date: z
+    .string()
+    .trim()
+    .nullable()
+    .default(null)
+    .transform((v) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null)),
   description: z.string().trim().nullable().default(null),
   currency: z
     .string()
@@ -64,6 +73,11 @@ const RECORD_PROJECT_TOOL = {
       location: {
         type: "string",
         description: "The site name and/or address the work happens at.",
+      },
+      quotation_date: {
+        type: "string",
+        description:
+          "The date printed on the document itself (issue date, not a due/validity date), as YYYY-MM-DD.",
       },
       description: {
         type: "string",

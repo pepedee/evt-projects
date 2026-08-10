@@ -24,6 +24,7 @@ interface DraftProject {
   code: string;
   client_name: string;
   location: string;
+  quotation_date: string;
   description: string;
   currency: string;
 }
@@ -33,6 +34,7 @@ type ImportedProject = {
   code: string | null;
   client_name: string | null;
   location: string | null;
+  quotation_date: string | null;
   description: string | null;
   currency: string;
   budget_lines: { category: string; description: string | null; planned_amount: number }[];
@@ -61,6 +63,7 @@ export function ImportForm() {
     code: "",
     client_name: "",
     location: "",
+    quotation_date: "",
     description: "",
     currency: "THB",
   });
@@ -102,6 +105,7 @@ export function ImportForm() {
         code: draft.code ?? "",
         client_name: draft.client_name ?? "",
         location: draft.location ?? "",
+        quotation_date: draft.quotation_date ?? "",
         description: draft.description ?? "",
         currency: draft.currency,
       });
@@ -154,6 +158,7 @@ export function ImportForm() {
         code: project.code,
         client_name: project.client_name,
         location: project.location,
+        quotation_date: project.quotation_date,
         description: project.description,
         status: "planning",
         priority: "medium",
@@ -242,6 +247,13 @@ export function ImportForm() {
           <Input
             value={project.location}
             onChange={(e) => setField("location", e.target.value)}
+          />
+        </Field>
+        <Field label="Quotation date">
+          <Input
+            type="date"
+            value={project.quotation_date}
+            onChange={(e) => setField("quotation_date", e.target.value)}
           />
         </Field>
         <Field label="Description">

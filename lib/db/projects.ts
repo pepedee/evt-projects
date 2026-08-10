@@ -21,6 +21,7 @@ export interface ProjectRow {
   client_name: string | null;
   location: string | null;
   currency: string;
+  quotation_date: string | null;
   start_date: string | null;
   target_date: string | null;
   actual_end_date: string | null;

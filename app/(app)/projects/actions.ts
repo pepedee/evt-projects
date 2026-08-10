@@ -30,6 +30,7 @@ const projectSchema = z.object({
   status: z.enum(["planning", "active", "on_hold", "completed", "cancelled"]),
   priority: z.enum(["low", "medium", "high", "critical"]),
   currency: z.string().trim().length(3, "Use a 3-letter currency code"),
+  quotation_date: optionalDate,
   start_date: optionalDate,
   target_date: optionalDate,
   health_override: z

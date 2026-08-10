@@ -66,6 +66,9 @@ export default async function ProjectDetailPage({
           <p className="mt-1 text-sm text-muted">
             {project.code ? `${project.code} · ` : ""}
             {project.client_name ?? "No client"}
+            {project.quotation_date
+              ? ` · Quotation ${formatDate(project.quotation_date)}`
+              : ""}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <ProjectStatusBadge status={project.status} />

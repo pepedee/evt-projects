@@ -113,6 +113,7 @@ export function buildHandoverReport(data: HandoverData): Document {
         ["Location", project.location ?? "—"],
         ["Client", project.client_name ?? "—"],
         ["Contractor", data.contractor],
+        ["Quotation date", formatDate(project.quotation_date)],
         ["Start date", formatDate(project.start_date)],
         [
           "Completion date",

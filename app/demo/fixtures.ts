@@ -24,6 +24,7 @@ const baseProject = {
   workspace_id: "demo-workspace",
   description: null,
   location: null,
+  quotation_date: null,
   health_override: null,
   actual_end_date: null,
   owner_id: null,

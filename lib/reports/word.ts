@@ -74,6 +74,7 @@ export function buildProjectReport(data: ReportData): Document {
         ["Progress", `${project.progress_pct}%`],
         ["Tasks complete", `${project.task_done} of ${project.task_total}`],
         ["Overdue tasks", String(project.task_overdue)],
+        ["Quotation date", formatDate(project.quotation_date)],
         ["Start date", formatDate(project.start_date)],
         ["Target date", formatDate(project.target_date)],
       ],
