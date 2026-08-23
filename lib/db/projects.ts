@@ -67,10 +67,13 @@ export interface Milestone {
   sort_order: number;
 }
 
+export type ProjectSort = "updated" | "name" | "code";
+
 export interface ProjectFilters {
   search?: string;
   status?: ProjectStatus | "all";
   priority?: Priority | "all";
+  sort?: ProjectSort;
   page?: number;
   pageSize?: number;
 }
@@ -131,8 +134,17 @@ export async function listProjects(
     );
   }
 
+  // Code is optional, so a code sort puts uncoded projects last regardless
+  // of anything else — there's no meaningful rank for "no quotation number".
+  if (filters.sort === "code") {
+    query = query.order("code", { ascending: true, nullsFirst: false });
+  } else if (filters.sort === "name") {
+    query = query.order("name", { ascending: true });
+  } else {
+    query = query.order("updated_at", { ascending: false });
+  }
+
   const { data, count, error } = await query
-    .order("updated_at", { ascending: false })
     .range((page - 1) * pageSize, page * pageSize - 1)
     .returns<ProjectRow[]>();
 

@@ -33,6 +33,12 @@ const PRIORITY_OPTIONS = [
   { value: "critical", label: "Critical" },
 ];
 
+const SORT_OPTIONS = [
+  { value: "all", label: "Recently updated" },
+  { value: "name", label: "Name" },
+  { value: "code", label: "Quotation number" },
+];
+
 export default async function ProjectsPage({
   searchParams,
 }: {
@@ -44,10 +50,12 @@ export default async function ProjectsPage({
   const single = (key: string) =>
     (Array.isArray(params[key]) ? params[key][0] : params[key]) ?? undefined;
 
+  const sortParam = single("sort");
   const { rows, total, pageCount } = await listProjects(user.workspaceId, {
     search: single("q"),
     status: single("status") as ProjectStatus | "all" | undefined,
     priority: single("priority") as Priority | "all" | undefined,
+    sort: sortParam === "name" || sortParam === "code" ? sortParam : undefined,
     page: Number(single("page") ?? 1),
   });
 
@@ -86,6 +94,7 @@ export default async function ProjectsPage({
         selects={[
           { name: "status", label: "Status", options: STATUS_OPTIONS },
           { name: "priority", label: "Priority", options: PRIORITY_OPTIONS },
+          { name: "sort", label: "Sort by", options: SORT_OPTIONS },
         ]}
       />
 

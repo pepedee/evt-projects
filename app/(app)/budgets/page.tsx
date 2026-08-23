@@ -9,10 +9,11 @@ import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Budgets · AI Project Tracker" };
 
-type SortKey = "name" | "status" | "planned" | "spent" | "variance" | "used";
+type SortKey = "name" | "code" | "status" | "planned" | "spent" | "variance" | "used";
 
 const COLUMNS: { key: SortKey; label: string; align?: "right"; defaultDir: "asc" | "desc" }[] = [
   { key: "name", label: "Project", defaultDir: "asc" },
+  { key: "code", label: "Quotation #", defaultDir: "asc" },
   { key: "status", label: "Status", defaultDir: "asc" },
   { key: "planned", label: "Planned", align: "right", defaultDir: "desc" },
   { key: "spent", label: "Spent", align: "right", defaultDir: "desc" },
@@ -30,6 +31,8 @@ function sortValue(project: Project, key: SortKey): string | number | null {
   switch (key) {
     case "name":
       return project.name.toLowerCase();
+    case "code":
+      return project.code ? project.code.toLowerCase() : null;
     case "status":
       return project.status;
     case "planned":
@@ -158,6 +161,9 @@ export default async function BudgetsPage({
                             unbudgeted
                           </p>
                         )}
+                      </td>
+                      <td className="px-5 py-3 text-muted">
+                        {project.code ?? "—"}
                       </td>
                       <td className="px-5 py-3">
                         <ProjectStatusBadge status={project.status} />
