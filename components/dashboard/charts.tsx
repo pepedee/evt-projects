@@ -42,6 +42,9 @@ export function ProgressChart({ projects }: { projects: Project[] }) {
               href={`/projects/${project.id}`}
               className="min-w-0 flex-1 truncate text-sm hover:underline"
             >
+              {project.code && (
+                <span className="text-muted">{project.code} · </span>
+              )}
               {project.name}
             </Link>
             {/* Direct label: every bar is labelled, so the sub-3:1 relief
@@ -56,7 +59,7 @@ export function ProgressChart({ projects }: { projects: Project[] }) {
           <div
             className="h-2 w-full rounded-full bg-surface-2"
             role="img"
-            aria-label={`${project.name}: ${project.progress_pct}% complete, ${project.task_done} of ${project.task_total} tasks done`}
+            aria-label={`${project.code ? `${project.code}, ` : ""}${project.name}: ${project.progress_pct}% complete, ${project.task_done} of ${project.task_total} tasks done`}
           >
             <div
               className="h-full rounded-r-[4px] bg-[var(--chart-1)]"
