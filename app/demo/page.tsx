@@ -25,17 +25,32 @@ import {
 
 export const metadata = { title: "Demo · AI Project Tracker" };
 
+// Forces per-request rendering instead of the default static prerender.
+// fixtures.ts computes several dates as an offset from `new Date()` at
+// module-evaluation time — fine for a single request, but a *statically*
+// prerendered page evaluates that module once at build time and bakes the
+// result into the HTML, while the client bundle re-evaluates the same
+// module (with a fresh `new Date()`) during hydration. Any real time
+// elapsed between build and a visitor loading the page — which for a
+// rarely-deployed fallback page can be weeks — made the two disagree,
+// producing a genuine, reproducible hydration mismatch (React error #418)
+// on every load. Confirmed live in production 2026-09-15, weeks after the
+// last deploy. Forcing dynamic rendering makes both evaluations happen
+// within the same request, so there's nothing left to disagree about.
+export const dynamic = "force-dynamic";
+
 /**
- * Static UI showcase, built from fixture data in ./fixtures.ts.
+ * UI showcase, built from fixture data in ./fixtures.ts.
  *
- * Exists so the interface can be reviewed while the database is unreachable.
- * Every component here is the real one the app uses — only the data is
+ * Exists so the interface can be reviewed while the database is unreachable
+ * (see AGENTS.md's Supabase auto-pause note — this page needs no database at
+ * all). Every component here is the real one the app uses — only the data is
  * invented. Interactive controls are rendered read-only (`canEdit={false}`)
  * because their server actions would need a database.
  *
- * To remove: delete this folder. (There is no middleware/proxy gating routes
- * anymore — it was removed along with authentication — so nothing else
- * references this path.)
+ * `proxy.ts` explicitly exempts this path via `PUBLIC_PATHS`, so it's
+ * reachable without signing in even though auth is otherwise required
+ * everywhere. To remove: delete this folder and drop it from `PUBLIC_PATHS`.
  */
 export default function DemoPage() {
   const ct = projects[0];
