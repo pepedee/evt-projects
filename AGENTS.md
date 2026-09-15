@@ -118,6 +118,31 @@ all differ from your training data. Read the relevant guide in
   screen on a phone. Every `grid ... sm:grid-cols-N` / `md:grid-cols-N` /
   `lg:grid-cols-N` in this app now starts with `grid-cols-1` — keep that
   pattern for any new one.
+- **The Supabase project (`wvradsepbjtikfabigcm`) is on the free tier and
+  auto-pauses after roughly a week of inactivity.** It has now happened
+  twice — once when the owner tried to sign in and got a plain "Failed to
+  fetch", again ~24 days later, caught while testing something unrelated.
+  Paused looks identical to deleted from outside: the domain stops
+  resolving in DNS entirely (`DNS_PROBE_FINISHED_NXDOMAIN` / curl exit 6,
+  "Non-existent domain"), not a normal HTTP error — check DNS resolution
+  for that exact hostname first if *anything* Supabase-related suddenly
+  fails, before assuming app code broke. The fix each time was the owner
+  clicking "Restore project" on the Supabase dashboard (a few minutes,
+  nothing lost) — this environment cannot do it, since it needs their
+  account login. Given the recurrence, the owner should either upgrade to
+  Supabase Pro (removes auto-pause) or set up a free scheduled ping (e.g.
+  cron-job.org hitting `/auth/v1/health` every few days) so this stops
+  costing a debugging cycle each time the app goes quiet for a week.
+- **`/demo` is intentionally `force-dynamic`, not statically prerendered —
+  do not remove that export.** `fixtures.ts` computes several dates as an
+  offset from `new Date()` at module-evaluation time; a *static* page bakes
+  that into the HTML once at build time while the client bundle
+  re-evaluates the same module fresh during hydration, so any real time
+  elapsed between build and a visit made the two disagree — a genuine,
+  reproducible React hydration error (#418) on every load in production,
+  invisible in dev and in a same-day local production build (no time to
+  drift yet). Forcing dynamic rendering makes both evaluations happen
+  inside the same request, so there's nothing left to disagree about.
 
 ## Architecture rules
 
