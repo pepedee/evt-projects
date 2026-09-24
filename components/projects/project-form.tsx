@@ -17,6 +17,9 @@ interface FormState {
   priority: string;
   currency: string;
   quotation_date: string;
+  po_status: string;
+  po_number: string;
+  po_date: string;
   start_date: string;
   target_date: string;
   health_override: string;
@@ -34,6 +37,9 @@ function initialState(project?: Project): FormState {
     priority: project?.priority ?? "medium",
     currency: project?.currency ?? "THB",
     quotation_date: project?.quotation_date ?? "",
+    po_status: project?.po_status ?? "waiting",
+    po_number: project?.po_number ?? "",
+    po_date: project?.po_date ?? "",
     start_date: project?.start_date ?? "",
     target_date: project?.target_date ?? "",
     health_override: project?.health_override ?? "",
@@ -114,6 +120,35 @@ export function ProjectForm({ project }: { project?: Project }) {
           <Input
             value={form.location}
             onChange={(e) => set("location", e.target.value)}
+          />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Field label="Customer PO" hint="Has the customer committed?">
+          <Select
+            value={form.po_status}
+            onChange={(e) => set("po_status", e.target.value)}
+          >
+            <option value="waiting">Waiting for PO</option>
+            <option value="received">PO received</option>
+            <option value="lost">LOST</option>
+          </Select>
+        </Field>
+        <Field label="PO number">
+          <Input
+            value={form.po_number}
+            onChange={(e) => set("po_number", e.target.value)}
+            disabled={form.po_status !== "received"}
+            placeholder={form.po_status === "received" ? "Customer's PO no." : "—"}
+          />
+        </Field>
+        <Field label="PO date">
+          <Input
+            type="date"
+            value={form.po_date}
+            onChange={(e) => set("po_date", e.target.value)}
+            disabled={form.po_status !== "received"}
           />
         </Field>
       </div>

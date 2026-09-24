@@ -10,6 +10,7 @@ import { listPaymentTerms } from "@/lib/db/payments";
 import { PaymentTerms } from "@/components/payments/payment-terms";
 import { DoneMark } from "@/components/projects/done-mark";
 import { AttentionMark } from "@/components/projects/attention-mark";
+import { PoBadge, PoStatusSelect } from "@/components/projects/po-status";
 import { needsAttention } from "@/lib/health";
 import { BudgetLines } from "@/components/budgets/budget-lines";
 import { ExpenseList } from "@/components/budgets/expense-list";
@@ -82,6 +83,18 @@ export default async function ProjectDetailPage({
               : ""}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
+            {canEdit ? (
+              <PoStatusSelect projectId={project.id} status={project.po_status} />
+            ) : (
+              <PoBadge status={project.po_status} />
+            )}
+            {project.po_status === "received" && (project.po_number || project.po_date) && (
+              <span className="text-xs text-muted">
+                {project.po_number ? `PO ${project.po_number}` : ""}
+                {project.po_number && project.po_date ? " · " : ""}
+                {project.po_date ? formatDate(project.po_date) : ""}
+              </span>
+            )}
             <ProjectStatusBadge status={project.status} />
             <PriorityBadge priority={project.priority} />
             <HealthBadge health={project.health} />

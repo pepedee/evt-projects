@@ -1,4 +1,4 @@
-import type { Health, ProjectStatus } from "@/lib/types";
+import type { Health, PoStatus, ProjectStatus } from "@/lib/types";
 
 /** Days before the target date that a project starts being scrutinised. */
 const RUN_UP_DAYS = 7;
@@ -16,6 +16,7 @@ export interface HealthInput {
   task_total: number;
   task_overdue: number;
   health_override: Health | null;
+  po_status?: PoStatus;
 }
 
 function daysUntil(date: string): number {
@@ -50,8 +51,12 @@ export function assessHealth(project: HealthInput): {
     };
   }
 
-  // A finished or abandoned project is not "at risk" of anything.
-  if (project.status === "completed" || project.status === "cancelled") {
+  // A finished, abandoned or lost project is not "at risk" of anything.
+  if (
+    project.status === "completed" ||
+    project.status === "cancelled" ||
+    project.po_status === "lost"
+  ) {
     return { health: "on_track", reason: null };
   }
 
@@ -97,11 +102,18 @@ export function deriveHealth(project: HealthInput): Health {
  * with it and the Projects page filters with it, so the number on the tile
  * and the list it opens can't disagree.
  */
-export function needsAttention(project: { status: ProjectStatus; health: Health }): boolean {
+export function needsAttention(project: {
+  status: ProjectStatus;
+  health: Health;
+  po_status: PoStatus;
+}): boolean {
+  // A lost quotation's dates will pass untouched forever — flagging it would
+  // be noise that never goes away.
   return (
     project.health !== "on_track" &&
     project.status !== "completed" &&
-    project.status !== "cancelled"
+    project.status !== "cancelled" &&
+    project.po_status !== "lost"
   );
 }
 

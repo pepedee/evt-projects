@@ -3,6 +3,7 @@ import { assessHealth, needsAttention } from "@/lib/health";
 import type {
   Health,
   MilestoneStatus,
+  PoStatus,
   Priority,
   ProjectStatus,
 } from "@/lib/types";
@@ -22,6 +23,9 @@ export interface ProjectRow {
   location: string | null;
   currency: string;
   quotation_date: string | null;
+  po_status: PoStatus;
+  po_number: string | null;
+  po_date: string | null;
   start_date: string | null;
   target_date: string | null;
   actual_end_date: string | null;
@@ -75,6 +79,7 @@ export interface ProjectFilters {
   search?: string;
   status?: ProjectStatus | "all";
   priority?: Priority | "all";
+  po?: PoStatus | "all";
   sort?: ProjectSort;
   /** Only projects that are at risk or off track (see needsAttention). */
   attention?: boolean;
@@ -130,6 +135,9 @@ export async function listProjects(
   }
   if (filters.priority && filters.priority !== "all") {
     query = query.eq("priority", filters.priority);
+  }
+  if (filters.po && filters.po !== "all") {
+    query = query.eq("po_status", filters.po);
   }
   if (filters.search?.trim()) {
     // Escape the PostgREST or() delimiters so a comma or paren in the search

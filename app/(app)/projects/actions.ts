@@ -35,6 +35,10 @@ const projectSchema = z.object({
   priority: z.enum(["low", "medium", "high", "critical"]),
   currency: z.string().trim().length(3, "Use a 3-letter currency code"),
   quotation_date: optionalDate,
+  // Defaults so the import path, which doesn't ask, lands as "waiting".
+  po_status: z.enum(["waiting", "received", "lost"]).default("waiting"),
+  po_number: optionalText.optional().default(null),
+  po_date: optionalDate.optional().default(null),
   start_date: optionalDate,
   target_date: optionalDate,
   health_override: z
@@ -388,6 +392,53 @@ export async function deleteMilestone(
 
     revalidatePath(`/projects/${projectId}`);
     return { ok: true, message: "Milestone deleted." };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+const poStatusSchema = z.enum(["waiting", "received", "lost"]);
+
+/**
+ * Quick PO-status change from the project page, without the full edit form.
+ * Only touches po_status — a partial update, so it can't clobber a
+ * concurrent edit to any other field.
+ */
+export async function setProjectPoStatus(
+  projectId: string,
+  poStatus: z.input<typeof poStatusSchema>,
+): Promise<ActionResult> {
+  try {
+    const parsed = poStatusSchema.safeParse(poStatus);
+    if (!parsed.success) return { ok: false, error: "Unknown PO status." };
+
+    const user = await requireRole("member");
+    const db = await createClient();
+
+    const { error } = await db
+      .from("projects")
+      .update({ po_status: parsed.data })
+      .eq("id", projectId)
+      .eq("workspace_id", user.workspaceId);
+    if (error) throw new Error(error.message);
+
+    await logActivity(user, {
+      entity: "project",
+      entityId: projectId,
+      action: "update",
+      summary:
+        parsed.data === "received"
+          ? "Marked PO received"
+          : parsed.data === "lost"
+            ? "Marked project LOST"
+            : "Marked as waiting for PO",
+      after: { po_status: parsed.data },
+    });
+
+    revalidatePath(`/projects/${projectId}`);
+    revalidatePath("/projects");
+    revalidatePath("/dashboard");
+    return { ok: true };
   } catch (err) {
     return fail(err);
   }

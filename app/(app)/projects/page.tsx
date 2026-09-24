@@ -20,7 +20,8 @@ import {
   ProjectStatusBadge,
 } from "@/components/shared/status-badge";
 import { formatDate } from "@/lib/format";
-import type { Priority, ProjectStatus } from "@/lib/types";
+import type { PoStatus, Priority, ProjectStatus } from "@/lib/types";
+import { PoBadge } from "@/components/projects/po-status";
 
 export const metadata = { title: "Projects · AI Project Tracker" };
 
@@ -39,6 +40,13 @@ const PRIORITY_OPTIONS = [
   { value: "medium", label: "Medium" },
   { value: "high", label: "High" },
   { value: "critical", label: "Critical" },
+];
+
+const PO_OPTIONS = [
+  { value: "all", label: "Any" },
+  { value: "received", label: "PO received" },
+  { value: "waiting", label: "Waiting for PO" },
+  { value: "lost", label: "LOST" },
 ];
 
 const HEALTH_OPTIONS = [
@@ -70,6 +78,7 @@ export default async function ProjectsPage({
     priority: single("priority") as Priority | "all" | undefined,
     sort: sortParam === "name" || sortParam === "code" ? sortParam : undefined,
     attention: single("health") === "attention",
+    po: single("po") as PoStatus | "all" | undefined,
     page: Number(single("page") ?? 1),
   });
 
@@ -116,6 +125,7 @@ export default async function ProjectsPage({
         selects={[
           { name: "status", label: "Status", options: STATUS_OPTIONS },
           { name: "priority", label: "Priority", options: PRIORITY_OPTIONS },
+          { name: "po", label: "Customer PO", options: PO_OPTIONS },
           { name: "health", label: "Health", options: HEALTH_OPTIONS },
           { name: "sort", label: "Sort by", options: SORT_OPTIONS },
         ]}
@@ -172,6 +182,8 @@ function ProjectCard({
       className={cn(
         "relative h-full p-5 transition hover:border-primary",
         attention && (tone === "danger" ? "border-danger/60" : "border-warning/60"),
+        // Lost quotations stay findable but step back visually.
+        project.po_status === "lost" && "opacity-60 hover:opacity-100",
       )}
     >
       <div className="flex items-start gap-3">
@@ -205,6 +217,7 @@ function ProjectCard({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
+        <PoBadge status={project.po_status} number={project.po_number} />
         <ProjectStatusBadge status={project.status} />
         <PriorityBadge priority={project.priority} />
       </div>

@@ -41,8 +41,10 @@ export async function getDashboard(workspaceId: string): Promise<DashboardData> 
   // budget meters — project_overview already carries every aggregate.
   const { rows: projects } = await listProjects(workspaceId, { pageSize: 200 });
 
+  // Lost quotations are out too: their tasks and budgets will never move.
   const live = projects.filter(
-    (p) => p.status !== "completed" && p.status !== "cancelled",
+    (p) =>
+      p.status !== "completed" && p.status !== "cancelled" && p.po_status !== "lost",
   );
 
   const [upcomingResult, activityResult] = await Promise.all([

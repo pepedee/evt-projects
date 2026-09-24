@@ -31,6 +31,15 @@ export type ProjectStatus =
   | "completed"
   | "cancelled";
 
+/** Whether the customer has committed with a PO — see 0022_project_po_status.sql. */
+export type PoStatus = "waiting" | "received" | "lost";
+
+export const PO_STATUS_LABEL: Record<PoStatus, string> = {
+  waiting: "Waiting for PO",
+  received: "PO received",
+  lost: "LOST",
+};
+
 export type TaskStatus = "todo" | "in_progress" | "blocked" | "done" | "cancelled";
 
 export type MilestoneStatus = "pending" | "in_progress" | "done";
