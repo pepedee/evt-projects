@@ -2,20 +2,25 @@ import Link from "next/link";
 import { FolderKanban, ListChecks, AlertTriangle, ShieldAlert } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { getDashboard } from "@/lib/db/dashboard";
-import { Card, EmptyState } from "@/components/ui/card";
+import { listPaymentsDue } from "@/lib/db/payments";
+import { isPaymentOverdue, PAYMENT_STATUS_LABEL } from "@/lib/payments";
+import { Badge, Card, EmptyState } from "@/components/ui/card";
 import { StatTile } from "@/components/dashboard/stat-tile";
 import { BudgetMeters } from "@/components/dashboard/charts";
 import { ProgressFilter } from "@/components/dashboard/progress-filter";
 import { PriorityBadge } from "@/components/shared/status-badge";
 import { isOverdue } from "@/lib/tasks";
-import { formatDateTime, formatRelativeDays } from "@/lib/format";
+import { formatDateTime, formatMoney, formatRelativeDays } from "@/lib/format";
 import { ROLE_LABEL } from "@/lib/types";
 
 export const metadata = { title: "Dashboard · AI Project Tracker" };
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const data = await getDashboard(user.workspaceId);
+  const [data, paymentsDue] = await Promise.all([
+    getDashboard(user.workspaceId),
+    listPaymentsDue(user.workspaceId),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -75,6 +80,51 @@ export default async function DashboardPage() {
           <BudgetMeters projects={data.budgets} />
         </Card>
       </div>
+
+      <Card
+        title="Payments due"
+        description="Unpaid instalments that are overdue or due in the next 30 days."
+      >
+        {paymentsDue.length === 0 ? (
+          <EmptyState message="Nothing to collect in the next 30 days." />
+        ) : (
+          <ul className="divide-y divide-border">
+            {paymentsDue.map((term) => {
+              const overdue = isPaymentOverdue(term);
+              return (
+                <li key={term.id}>
+                  <Link
+                    href={`/projects/${term.project_id}`}
+                    className="flex items-center gap-3 px-5 py-3 transition hover:bg-surface-2"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {term.projects?.code ? `${term.projects.code} · ` : ""}
+                        {term.label}
+                      </p>
+                      <p className="truncate text-xs text-muted">
+                        {term.projects?.name ?? "—"}
+                        {term.status === "invoiced" &&
+                          ` · ${PAYMENT_STATUS_LABEL.invoiced}${term.invoice_no ? ` ${term.invoice_no}` : ""}`}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-sm font-semibold tabular-nums">
+                        {formatMoney(term.amount, term.projects?.currency ?? "THB")}
+                      </p>
+                      {overdue ? (
+                        <Badge tone="danger">{formatRelativeDays(term.due_date)}</Badge>
+                      ) : (
+                        <p className="text-xs text-muted">{formatRelativeDays(term.due_date)}</p>
+                      )}
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card

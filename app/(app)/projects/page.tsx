@@ -6,6 +6,7 @@ import { can } from "@/lib/auth";
 import { Card, EmptyState } from "@/components/ui/card";
 import { FilterBar } from "@/components/shared/filter-bar";
 import { ProjectCardActions } from "@/components/projects/project-card-actions";
+import { DoneMark } from "@/components/projects/done-mark";
 import {
   HealthBadge,
   ProgressBar,
@@ -118,14 +119,17 @@ export default async function ProjectsPage({
             >
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
-                  <h2 className="truncate font-semibold">
-                    <Link
-                      href={`/projects/${project.id}`}
-                      className="after:absolute after:inset-0 after:content-['']"
-                    >
-                      {project.name}
-                    </Link>
-                  </h2>
+                  <div className="flex items-center gap-1.5">
+                    {project.status === "completed" && <DoneMark />}
+                    <h2 className="min-w-0 truncate font-semibold">
+                      <Link
+                        href={`/projects/${project.id}`}
+                        className="after:absolute after:inset-0 after:content-['']"
+                      >
+                        {project.name}
+                      </Link>
+                    </h2>
+                  </div>
                   <p className="mt-0.5 truncate text-sm text-muted">
                     {project.code ? `${project.code} · ` : ""}
                     {project.client_name ?? "No client"}

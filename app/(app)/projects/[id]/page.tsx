@@ -6,6 +6,9 @@ import { getProject, listMilestones } from "@/lib/db/projects";
 import { listTasks } from "@/lib/db/tasks";
 import { listBudgetLines, listExpenses } from "@/lib/db/budgets";
 import { listDocuments } from "@/lib/db/documents";
+import { listPaymentTerms } from "@/lib/db/payments";
+import { PaymentTerms } from "@/components/payments/payment-terms";
+import { DoneMark } from "@/components/projects/done-mark";
 import { BudgetLines } from "@/components/budgets/budget-lines";
 import { ExpenseList } from "@/components/budgets/expense-list";
 import { UploadButton } from "@/components/files/upload-button";
@@ -38,13 +41,15 @@ export default async function ProjectDetailPage({
   const project = await getProject(id, user.workspaceId);
   if (!project) notFound();
 
-  const [milestones, tasks, budgetLines, expenses, documents] = await Promise.all([
-    listMilestones(id, user.workspaceId),
-    listTasks(user.workspaceId, { projectId: id }),
-    listBudgetLines(id, user.workspaceId),
-    listExpenses(id, user.workspaceId),
-    listDocuments(user.workspaceId, { projectId: id }),
-  ]);
+  const [milestones, tasks, budgetLines, expenses, documents, paymentTerms] =
+    await Promise.all([
+      listMilestones(id, user.workspaceId),
+      listTasks(user.workspaceId, { projectId: id }),
+      listBudgetLines(id, user.workspaceId),
+      listExpenses(id, user.workspaceId),
+      listDocuments(user.workspaceId, { projectId: id }),
+      listPaymentTerms(id, user.workspaceId),
+    ]);
 
   const canEdit = can(user, "member");
   const canDelete = can(user, "admin");
@@ -56,7 +61,10 @@ export default async function ProjectDetailPage({
           <Link href="/projects" className="text-sm text-muted hover:underline">
             ← Projects
           </Link>
-          <h1 className="mt-1 text-2xl font-semibold">{project.name}</h1>
+          <h1 className="mt-1 flex items-center gap-2 text-2xl font-semibold">
+            {project.status === "completed" && <DoneMark size="lg" />}
+            <span className="min-w-0">{project.name}</span>
+          </h1>
           <p className="mt-1 text-sm text-muted">
             {project.code ? `${project.code} · ` : ""}
             {project.client_name ?? "No client"}
@@ -210,6 +218,20 @@ export default async function ProjectDetailPage({
           currency={project.currency}
           expenses={expenses}
           lines={budgetLines}
+          canEdit={canEdit}
+          canDelete={canDelete}
+        />
+      </Card>
+
+      <Card
+        title="Payments"
+        description="What the client pays and when — before VAT, same basis as the budget."
+      >
+        <PaymentTerms
+          projectId={project.id}
+          currency={project.currency}
+          contractValue={project.planned_total}
+          terms={paymentTerms}
           canEdit={canEdit}
           canDelete={canDelete}
         />

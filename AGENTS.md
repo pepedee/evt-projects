@@ -14,7 +14,8 @@ for summaries · Supabase Auth (real accounts, restored 2026-08-05 — see
 
 **Core modules.** Dashboard (KPIs, charts, upcoming/overdue) · project and
 task management (kanban, milestones, timeline, schedule import,
-server-derived progress/health) · budgets (planned vs. actual) · file
+server-derived progress/health) · budgets (planned vs. actual) · payment
+tracking (instalments pending → invoiced → paid, dashboard "Payments due") · file
 uploads (private bucket, signed URLs) · AI summaries
 (status/risk/standup/report-intro, cached by input hash) · Word report
 generation (`docx`, generated from code).
