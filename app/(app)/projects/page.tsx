@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { can } from "@/lib/auth";
 import { Card, EmptyState } from "@/components/ui/card";
 import { FilterBar } from "@/components/shared/filter-bar";
+import { ProjectCardActions } from "@/components/projects/project-card-actions";
 import {
   HealthBadge,
   ProgressBar,
@@ -59,6 +60,9 @@ export default async function ProjectsPage({
     page: Number(single("page") ?? 1),
   });
 
+  const canEdit = can(user, "member");
+  const canDelete = can(user, "admin");
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-center gap-3">
@@ -105,41 +109,58 @@ export default async function ProjectsPage({
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {rows.map((project) => (
-            <Link key={project.id} href={`/projects/${project.id}`}>
-              <Card className="h-full p-5 transition hover:border-primary">
-                <div className="flex items-start gap-3">
-                  <div className="min-w-0 flex-1">
-                    <h2 className="truncate font-semibold">{project.name}</h2>
-                    <p className="mt-0.5 truncate text-sm text-muted">
-                      {project.code ? `${project.code} · ` : ""}
-                      {project.client_name ?? "No client"}
-                    </p>
-                  </div>
-                  <HealthBadge health={project.health} />
+            // A button inside an <a> is invalid HTML, so rather than wrapping
+            // the card in one link, the title link is stretched over the card
+            // (after:inset-0) and the Edit/Delete icons sit above it (z-10).
+            <Card
+              key={project.id}
+              className="relative h-full p-5 transition hover:border-primary"
+            >
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <h2 className="truncate font-semibold">
+                    <Link
+                      href={`/projects/${project.id}`}
+                      className="after:absolute after:inset-0 after:content-['']"
+                    >
+                      {project.name}
+                    </Link>
+                  </h2>
+                  <p className="mt-0.5 truncate text-sm text-muted">
+                    {project.code ? `${project.code} · ` : ""}
+                    {project.client_name ?? "No client"}
+                  </p>
                 </div>
+                <HealthBadge health={project.health} />
+                <ProjectCardActions
+                  projectId={project.id}
+                  projectName={project.name}
+                  canEdit={canEdit}
+                  canDelete={canDelete}
+                />
+              </div>
 
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <ProjectStatusBadge status={project.status} />
-                  <PriorityBadge priority={project.priority} />
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <ProjectStatusBadge status={project.status} />
+                <PriorityBadge priority={project.priority} />
+              </div>
+
+              <div className="mt-4">
+                <div className="mb-1.5 flex justify-between text-xs text-muted">
+                  <span>
+                    {project.task_done}/{project.task_total} tasks
+                    {project.task_overdue > 0 &&
+                      ` · ${project.task_overdue} overdue`}
+                  </span>
+                  <span className="tabular-nums">{project.progress_pct}%</span>
                 </div>
+                <ProgressBar value={project.progress_pct} />
+              </div>
 
-                <div className="mt-4">
-                  <div className="mb-1.5 flex justify-between text-xs text-muted">
-                    <span>
-                      {project.task_done}/{project.task_total} tasks
-                      {project.task_overdue > 0 &&
-                        ` · ${project.task_overdue} overdue`}
-                    </span>
-                    <span className="tabular-nums">{project.progress_pct}%</span>
-                  </div>
-                  <ProgressBar value={project.progress_pct} />
-                </div>
-
-                <p className="mt-3 text-xs text-muted">
-                  Target {formatDate(project.target_date)}
-                </p>
-              </Card>
-            </Link>
+              <p className="mt-3 text-xs text-muted">
+                Target {formatDate(project.target_date)}
+              </p>
+            </Card>
           ))}
         </div>
       )}
