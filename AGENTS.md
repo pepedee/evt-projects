@@ -57,6 +57,33 @@ all differ from your training data. Read the relevant guide in
 - Always build/dev with `--webpack` (scripts already do this); Turbopack is not used.
 - Dev server: port 3006 (`dev-server.cmd` or the root `.claude/launch.json`).
   3000–3005 belong to sibling apps.
+- **`npm run dev` can point at a fully local Supabase stack instead of the
+  cloud project**, added specifically because the cloud project is on the
+  free tier and auto-pauses after ~7 days idle (see the guard note below) —
+  useful for developing without depending on that project being awake at
+  all, and for experimenting without any risk to real business data. Needs
+  Docker Desktop running (the local stack is Postgres + Auth + Storage in
+  containers, via the `supabase` CLI already in devDependencies).
+  `supabase/config.toml` already points at the existing
+  `supabase/migrations/*.sql` and exposes the `tracker` schema (not just
+  `public`) and uses port 3006 for auth redirects, matching this app. To use
+  it: `npm run db:start` (first run pulls images, can take a few minutes; it
+  prints a URL, anon key, service-role key, and DB URL when ready), copy
+  those into a new `.env.development.local` (template: `.env.development.
+  local.example`) using the same variable names as `.env.local` — Next.js
+  automatically prefers `.env.development.local` over `.env.local` for `npm
+  run dev` and only for `npm run dev`, so `npm run build`/`start` and the
+  deployed Vercel site are completely unaffected either way. A fresh local
+  database starts empty; sign up through `/register` the normal way to get a
+  real local workspace via the same trigger the cloud project uses
+  (0007_signup.sql) — no seed data needed. `npm run db:stop` when done,
+  `npm run db:reset` to wipe and re-run every migration from scratch. Delete
+  or rename `.env.development.local` to go back to the cloud database.
+  **Not yet verified end-to-end** (this environment has no Docker) — the
+  config is correct by inspection and the migrations are believed compatible
+  with a stock local stack, but actually running `db:start` + `db:reset` for
+  the first time is the real test; if something in the existing migrations
+  turns out to assume something cloud-specific, that's where it will surface.
 - **The database lives in the `tracker` schema**, not `public`. Unlike the
   sibling apps (daily-budget-app, project-list-app, visa-flow, tour-booking-app,
   visa-agency, bakery-pos), this app has its **own dedicated Supabase project**

@@ -21,9 +21,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files — never commit real keys
+# env files — never commit real keys, but templates (*.example) are meant
+# to be committed and should never get silently caught by the broad rules
 .env
 .env*.local
+.env*
+!.env*.example
 
 # deployment
 .vercel
@@ -33,9 +36,6 @@ supabase/.temp
 
 # typescript
 *.tsbuildinfo
-
-.vercel
-.env*
 
 # real client business documents (quotations, invoices, receipts) — never
 # belongs in source control, committed or not

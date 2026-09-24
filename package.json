@@ -9,7 +9,11 @@
     "lint": "eslint",
     "migrate": "node --env-file=.env.local scripts/apply-migration.mjs",
     "check-schemas": "node --env-file=.env.local scripts/check-schemas.mjs",
-    "report:preview": "tsx scripts/preview-report.ts"
+    "report:preview": "tsx scripts/preview-report.ts",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:status": "supabase status"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
@@ -34,6 +38,7 @@
     "eslint": "^9",
     "eslint-config-next": "^16.3.5",
     "pg": "^8.23.0",
+    "supabase": "^2.117.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^5"
