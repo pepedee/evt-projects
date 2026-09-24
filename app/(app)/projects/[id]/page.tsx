@@ -25,8 +25,8 @@ import {
   ProjectStatusBadge,
 } from "@/components/shared/status-badge";
 import { MilestoneList } from "@/components/projects/milestone-list";
-import { MilestoneImport } from "@/components/projects/milestone-import";
 import { ProjectTimeline } from "@/components/projects/project-timeline";
+import { ScheduleImport } from "@/components/projects/schedule-import";
 import { TaskList } from "@/components/tasks/task-list";
 import { ArchiveProjectButton } from "@/components/projects/archive-button";
 import { formatDate } from "@/lib/format";
@@ -159,6 +159,7 @@ export default async function ProjectDetailPage({
           projectStartDate={project.start_date}
           projectTargetDate={project.target_date}
         />
+        {canEdit && <ScheduleImport projectId={project.id} />}
       </Card>
 
       <Card
@@ -182,7 +183,6 @@ export default async function ProjectDetailPage({
           canEdit={canEdit}
           canDelete={canDelete}
         />
-        {canEdit && <MilestoneImport projectId={project.id} />}
       </Card>
 
       <Card

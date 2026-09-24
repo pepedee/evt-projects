@@ -6,7 +6,11 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { logActivity } from "@/lib/audit";
 import { fail, type ActionResult } from "@/lib/types";
-import { draftMilestoneSchema, parseMsProjectXml, type DraftMilestone } from "@/lib/import/msproject";
+import {
+  draftScheduleItemSchema,
+  type DraftScheduleItem,
+  type ScheduleProgress,
+} from "@/lib/import/schedule";
 
 /** Empty date inputs arrive as "" — store them as NULL, not as an empty date. */
 const optionalDate = z
@@ -389,50 +393,36 @@ export async function deleteMilestone(
   }
 }
 
+const TASK_STATUS_FOR: Record<ScheduleProgress, "todo" | "in_progress" | "done"> = {
+  not_started: "todo",
+  in_progress: "in_progress",
+  done: "done",
+};
+
+const MILESTONE_STATUS_FOR: Record<ScheduleProgress, "pending" | "in_progress" | "done"> = {
+  not_started: "pending",
+  in_progress: "in_progress",
+  done: "done",
+};
+
 /**
- * Reads an MS Project "Save As > XML" export and returns the milestones it
- * finds — nothing is written yet. Deterministic parsing, not AI: this
- * format's schema is documented and plain, unlike a PDF layout.
+ * Saves the schedule rows a person kept after reviewing an MS Project or PDF
+ * import (see app/api/projects/[id]/schedule for the parsing half). New rows
+ * go after everything already in the project, in the file's own order.
  */
-export async function parseMsProjectMilestones(
-  formData: FormData,
-): Promise<{ ok: true; milestones: DraftMilestone[] } | { ok: false; error: string }> {
-  try {
-    await requireRole("member");
-
-    const file = formData.get("file");
-    if (!(file instanceof File)) {
-      return { ok: false, error: "No file received." };
-    }
-    if (file.size > 20 * 1024 * 1024) {
-      return { ok: false, error: "That file is larger than the 20MB limit." };
-    }
-
-    const text = await file.text();
-    const milestones = parseMsProjectXml(text);
-    if (milestones.length === 0) {
-      return {
-        ok: false,
-        error: "No milestones found — check that some tasks are actually flagged as milestones in MS Project.",
-      };
-    }
-    return { ok: true, milestones };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
-  }
-}
-
-/** Bulk-saves the milestones a person kept after reviewing the parsed file. */
-export async function importMilestones(
+export async function importSchedule(
   projectId: string,
-  milestones: DraftMilestone[],
+  items: DraftScheduleItem[],
 ): Promise<ActionResult> {
   try {
-    const rows: z.infer<typeof draftMilestoneSchema>[] = [];
-    for (const m of milestones) {
-      const parsed = draftMilestoneSchema.safeParse(m);
+    const rows: z.infer<typeof draftScheduleItemSchema>[] = [];
+    for (const item of items) {
+      const parsed = draftScheduleItemSchema.safeParse(item);
       if (!parsed.success) {
-        return { ok: false, error: parsed.error.issues[0].message };
+        return {
+          ok: false,
+          error: `"${item.name || "(unnamed)"}": ${parsed.error.issues[0].message}`,
+        };
       }
       rows.push(parsed.data);
     }
@@ -443,20 +433,87 @@ export async function importMilestones(
     const user = await requireRole("member");
     const db = await createClient();
 
-    const { error } = await db.from("milestones").insert(
-      rows.map((m) => ({ ...m, project_id: projectId })),
-    );
-    if (error) throw new Error(error.message);
+    const project = await db
+      .from("projects")
+      .select("id")
+      .eq("id", projectId)
+      .eq("workspace_id", user.workspaceId)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (project.error) throw new Error(project.error.message);
+    if (!project.data) return { ok: false, error: "Project not found." };
+
+    const [lastTask, lastMilestone] = await Promise.all([
+      db
+        .from("tasks")
+        .select("sort_order")
+        .eq("project_id", projectId)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle<{ sort_order: number }>(),
+      db
+        .from("milestones")
+        .select("sort_order")
+        .eq("project_id", projectId)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle<{ sort_order: number }>(),
+    ]);
+    let nextTaskOrder = (lastTask.data?.sort_order ?? -1) + 1;
+    let nextMilestoneOrder = (lastMilestone.data?.sort_order ?? -1) + 1;
+
+    const taskRows = rows
+      .filter((r) => r.kind === "task")
+      .map((r) => ({
+        project_id: projectId,
+        title: r.name,
+        description: r.phase ? `Phase: ${r.phase}` : null,
+        status: TASK_STATUS_FOR[r.progress],
+        priority: "medium" as const,
+        kind: "task" as const,
+        start_date: r.start_date,
+        due_date: r.due_date,
+        sort_order: nextTaskOrder++,
+        created_by: user.id,
+      }));
+
+    const milestoneRows = rows
+      .filter((r) => r.kind === "milestone")
+      .map((r) => ({
+        project_id: projectId,
+        name: r.name,
+        description: r.phase ? `Phase: ${r.phase}` : null,
+        due_date: r.due_date ?? r.start_date,
+        status: MILESTONE_STATUS_FOR[r.progress],
+        sort_order: nextMilestoneOrder++,
+      }));
+
+    if (taskRows.length > 0) {
+      const { error } = await db.from("tasks").insert(taskRows);
+      if (error) throw new Error(error.message);
+    }
+    if (milestoneRows.length > 0) {
+      const { error } = await db.from("milestones").insert(milestoneRows);
+      if (error) throw new Error(error.message);
+    }
+
+    const parts = [
+      taskRows.length && `${taskRows.length} task${taskRows.length === 1 ? "" : "s"}`,
+      milestoneRows.length &&
+        `${milestoneRows.length} milestone${milestoneRows.length === 1 ? "" : "s"}`,
+    ].filter(Boolean);
 
     await logActivity(user, {
-      entity: "milestone",
+      entity: "project",
       entityId: projectId,
-      action: "create",
-      summary: `Imported ${rows.length} milestone${rows.length === 1 ? "" : "s"} from MS Project`,
+      action: "update",
+      summary: `Imported ${parts.join(" and ")} from a schedule`,
     });
 
     revalidatePath(`/projects/${projectId}`);
-    return { ok: true, message: `${rows.length} milestone${rows.length === 1 ? "" : "s"} imported.` };
+    revalidatePath("/tasks");
+    revalidatePath("/dashboard");
+    return { ok: true, message: `Imported ${parts.join(" and ")}.` };
   } catch (err) {
     return fail(err);
   }
