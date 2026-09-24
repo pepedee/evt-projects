@@ -6,7 +6,6 @@ import { listPaymentsDue } from "@/lib/db/payments";
 import { isPaymentOverdue, PAYMENT_STATUS_LABEL } from "@/lib/payments";
 import { Badge, Card, EmptyState } from "@/components/ui/card";
 import { StatTile } from "@/components/dashboard/stat-tile";
-import { BudgetMeters } from "@/components/dashboard/charts";
 import { ProgressFilter } from "@/components/dashboard/progress-filter";
 import { PriorityBadge } from "@/components/shared/status-badge";
 import { isOverdue } from "@/lib/tasks";
@@ -65,21 +64,12 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card
-          title="Project progress"
-          description="Share of tasks done, computed by the database."
-        >
-          <ProgressFilter projects={data.progress} />
-        </Card>
-
-        <Card
-          title="Budget usage"
-          description="Spent against planned, per project."
-        >
-          <BudgetMeters projects={data.budgets} />
-        </Card>
-      </div>
+      <Card
+        title="Project progress"
+        description="Share of tasks done, computed by the database."
+      >
+        <ProgressFilter projects={data.progress} />
+      </Card>
 
       <Card
         title="Payments due"

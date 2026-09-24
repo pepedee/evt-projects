@@ -21,8 +21,6 @@ export interface DashboardData {
   atRiskProjects: number;
   /** Every live project with at least one task, most complete first. */
   progress: Project[];
-  /** Projects that have a budget, for the meters. */
-  budgets: Project[];
   upcoming: TaskWithProject[];
   activity: ActivityEntry[];
 }
@@ -37,8 +35,8 @@ export async function getDashboard(workspaceId: string): Promise<DashboardData> 
   const db = await createClient();
   const now = today();
 
-  // One pass over projects covers the counts, the progress chart and the
-  // budget meters — project_overview already carries every aggregate.
+  // One pass over projects covers the counts and the progress chart —
+  // project_overview already carries every aggregate.
   const { rows: projects } = await listProjects(workspaceId, { pageSize: 200 });
 
   // Lost quotations are out too: their tasks and budgets will never move.
@@ -84,13 +82,6 @@ export async function getDashboard(workspaceId: string): Promise<DashboardData> 
     progress: live
       .filter((p) => p.task_total > 0)
       .sort((a, b) => b.progress_pct - a.progress_pct),
-    budgets: live
-      .filter((p) => p.planned_total > 0)
-      .sort(
-        (a, b) =>
-          b.spent_total / b.planned_total - a.spent_total / a.planned_total,
-      )
-      .slice(0, 6),
     upcoming: upcomingResult.data ?? [],
     activity: activityResult.data ?? [],
   };
