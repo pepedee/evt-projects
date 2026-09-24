@@ -13,12 +13,18 @@ for summaries · Supabase Auth (real accounts, restored 2026-08-05 — see
 "Authentication" below) · local git, no GitHub remote yet.
 
 **Core modules.** Dashboard (KPIs, charts, upcoming/overdue) · project and
-task management (kanban, milestones, server-derived progress/health) ·
-budgets (planned vs. actual) · materials/procurement (qty × unit cost,
-needed/ordered/received/installed) · QC inspection grid (work items × units,
-pass/fail per cell) · file uploads (private bucket, signed URLs) · AI
-summaries (status/risk/standup/report-intro, cached by input hash) · Word
-report generation (`docx`, generated from code).
+task management (kanban, milestones, timeline, schedule import,
+server-derived progress/health) · budgets (planned vs. actual) · file
+uploads (private bucket, signed URLs) · AI summaries
+(status/risk/standup/report-intro, cached by input hash) · Word report
+generation (`docx`, generated from code).
+
+**Removed from the app, tables kept (phase 45).** Materials/procurement and
+the QC inspection grid were taken out of the UI at the owner's request. Their
+tables (`materials`, `qc_items`, `qc_units`, `qc_results`, 0018) and data are
+still in the database — one project (EVT26QT002R1) holds 665 real QC results
+— so nothing was dropped. To restore the feature, revert the phase-45 commit;
+don't write a migration that drops these tables without asking the owner.
 
 **Coding rules** are the "How to work here" section directly below: explain
 architecture before coding, build one `TASKS.md` phase at a time, ask when
@@ -183,7 +189,9 @@ all differ from your training data. Read the relevant guide in
   `progress_pct` and `health` are recomputed server-side from source rows.
 - **Nothing is hard deleted.** `projects` and `tasks` use `deleted_at`.
 - Money is `numeric(14,2)` plus an explicit `currency` column. Never a float.
-- **`qc_results` deletes at `member`, not `admin`** — the one table that
+- **`qc_results` deletes at `member`, not `admin`** (the QC UI is currently
+  removed — see "Removed from the app" above — but the policy still applies
+  if it returns) — the one table that
   doesn't use `apply_workspace_rls()`'s default. Clearing a QC grid cell back
   to "not yet inspected" is a real row delete (no third enum value for
   blank), but it's routine data entry during inspection, not a destructive
