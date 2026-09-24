@@ -10,6 +10,7 @@
     "migrate": "node --env-file=.env.local scripts/apply-migration.mjs",
     "check-schemas": "node --env-file=.env.local scripts/check-schemas.mjs",
     "report:preview": "tsx scripts/preview-report.ts",
+    "folders": "node --env-file=.env.local scripts/create-project-folders.mjs",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
