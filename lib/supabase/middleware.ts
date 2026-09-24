@@ -7,8 +7,18 @@ import { NextResponse, type NextRequest } from "next/server";
  * /demo is included even though it postdates the original auth build — it's
  * a fixture-only showcase with no database calls, meant to be reviewable
  * without signing in.
+ *
+ * /api/cron is included for a different reason: Vercel Cron calls it
+ * server-to-server with no browser session at all (see
+ * app/api/cron/keep-alive/route.ts), so it would otherwise get redirected to
+ * /login before ever reaching the route handler's own auth check
+ * (CRON_SECRET) — that call is never signed in, so it only ever hits the
+ * `!user` branch below. A signed-in person visiting this URL directly would
+ * hit the `user && isPublicPath` branch instead and bounce to /dashboard
+ * (it's not exempted like /demo is) — moot in practice, and harmless either
+ * way since the response never exposes anything beyond a workspace count.
  */
-const PUBLIC_PATHS = ["/login", "/register", "/demo"];
+const PUBLIC_PATHS = ["/login", "/register", "/demo", "/api/cron"];
 
 /**
  * Auth machinery (sign-out, callbacks). Always allowed and never redirected —
