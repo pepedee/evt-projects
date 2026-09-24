@@ -53,6 +53,49 @@ export function paymentTotals(terms: PaymentTerm[]): PaymentTotals {
 }
 
 /**
+ * One project's payment position at a glance, for its card. `state` is the
+ * single most important thing to say about it, in priority order: money
+ * that's late beats money that's invoiced beats what's due next.
+ */
+export interface PaymentSummary extends PaymentTotals {
+  count: number;
+  /** Invoiced but not yet paid. */
+  awaiting: number;
+  nextDue: { date: string; amount: number } | null;
+  state: "none" | "paid" | "overdue" | "invoiced" | "pending";
+}
+
+export function summarizePayments(terms: PaymentTerm[]): PaymentSummary {
+  const totals = paymentTotals(terms);
+  const unpaid = terms.filter((t) => t.status !== "paid");
+  const awaiting = unpaid
+    .filter((t) => t.status === "invoiced")
+    .reduce((sum, t) => sum + t.amount, 0);
+  const next = unpaid
+    .filter((t) => t.due_date !== null && !isPaymentOverdue(t))
+    .sort((a, b) => a.due_date!.localeCompare(b.due_date!))[0];
+
+  const state: PaymentSummary["state"] =
+    terms.length === 0
+      ? "none"
+      : unpaid.length === 0
+        ? "paid"
+        : totals.overdue > 0
+          ? "overdue"
+          : awaiting > 0
+            ? "invoiced"
+            : "pending";
+
+  return {
+    ...totals,
+    count: terms.length,
+    awaiting,
+    nextDue: next ? { date: next.due_date!, amount: next.amount } : null,
+    state,
+  };
+}
+
+/**
  * Starting points for the patterns the business's own quotations actually
  * use ("100% prepayment", "50% prepayment / 50% net 30 days", ...). Amounts
  * are worked out server-side from the contract value, never from here.

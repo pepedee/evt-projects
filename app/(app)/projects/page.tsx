@@ -4,6 +4,9 @@ import { listProjects, type Project } from "@/lib/db/projects";
 import { needsAttention } from "@/lib/health";
 import { cn } from "@/lib/utils";
 import { AttentionMark } from "@/components/projects/attention-mark";
+import { listPaymentTermsByProject } from "@/lib/db/payments";
+import { summarizePayments, type PaymentSummary } from "@/lib/payments";
+import { PaymentStatus } from "@/components/payments/payment-status";
 import { requireUser } from "@/lib/auth";
 import { can } from "@/lib/auth";
 import { Card, EmptyState } from "@/components/ui/card";
@@ -70,6 +73,11 @@ export default async function ProjectsPage({
     page: Number(single("page") ?? 1),
   });
 
+  const paymentTerms = await listPaymentTermsByProject(
+    user.workspaceId,
+    rows.map((p) => p.id),
+  );
+
   const canEdit = can(user, "member");
   const canDelete = can(user, "admin");
 
@@ -123,6 +131,7 @@ export default async function ProjectsPage({
             <ProjectCard
               key={project.id}
               project={project}
+              payments={summarizePayments(paymentTerms.get(project.id) ?? [])}
               canEdit={canEdit}
               canDelete={canDelete}
             />
@@ -143,10 +152,12 @@ export default async function ProjectsPage({
 
 function ProjectCard({
   project,
+  payments,
   canEdit,
   canDelete,
 }: {
   project: Project;
+  payments: PaymentSummary;
   canEdit: boolean;
   canDelete: boolean;
 }) {
@@ -220,6 +231,10 @@ function ProjectCard({
           <span className="tabular-nums">{project.progress_pct}%</span>
         </div>
         <ProgressBar value={project.progress_pct} />
+      </div>
+
+      <div className="mt-3">
+        <PaymentStatus summary={payments} currency={project.currency} />
       </div>
 
       <p className="mt-3 text-xs text-muted">

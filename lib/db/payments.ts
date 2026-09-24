@@ -48,6 +48,37 @@ export async function listPaymentTerms(
   return (data ?? []).map(toTerm);
 }
 
+/**
+ * Payment terms for several projects in one query, grouped by project —
+ * for the Projects list, so each card can show its payment status without
+ * a query per card.
+ */
+export async function listPaymentTermsByProject(
+  workspaceId: string,
+  projectIds: string[],
+): Promise<Map<string, PaymentTerm[]>> {
+  const byProject = new Map<string, PaymentTerm[]>();
+  if (projectIds.length === 0) return byProject;
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("payment_terms")
+    .select(COLUMNS)
+    .eq("workspace_id", workspaceId)
+    .in("project_id", projectIds)
+    .order("sort_order")
+    .returns<Row[]>();
+  if (error) throw new Error(error.message);
+
+  for (const row of data ?? []) {
+    const term = toTerm(row);
+    const list = byProject.get(term.project_id);
+    if (list) list.push(term);
+    else byProject.set(term.project_id, [term]);
+  }
+  return byProject;
+}
+
 export type PaymentDue = PaymentTerm & {
   projects: { name: string; code: string | null; currency: string } | null;
 };
