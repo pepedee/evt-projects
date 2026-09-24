@@ -6,12 +6,15 @@ const STYLES = [
   { value: "classic", label: "Classic" },
   { value: "macos", label: "macOS" },
   { value: "ios26", label: "iOS 26" },
+  { value: "soft", label: "Soft" },
 ] as const;
 
 type ThemeStyle = (typeof STYLES)[number]["value"];
 
-function isThemeStyle(value: string | null): value is "macos" | "ios26" {
-  return value === "macos" || value === "ios26";
+function isThemeStyle(
+  value: string | null,
+): value is "macos" | "ios26" | "soft" {
+  return value === "macos" || value === "ios26" || value === "soft";
 }
 
 /**

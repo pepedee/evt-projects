@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FolderKanban, ListChecks, AlertTriangle, ShieldAlert } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { getDashboard } from "@/lib/db/dashboard";
 import { Card, EmptyState } from "@/components/ui/card";
@@ -30,13 +31,23 @@ export default async function DashboardPage() {
           label="Active projects"
           value={data.activeProjects}
           href="/projects?status=active"
+          icon={FolderKanban}
+          accent="primary"
         />
-        <StatTile label="Open tasks" value={data.openTasks} href="/tasks" />
+        <StatTile
+          label="Open tasks"
+          value={data.openTasks}
+          href="/tasks"
+          icon={ListChecks}
+          accent="info"
+        />
         <StatTile
           label="Overdue"
           value={data.overdueTasks}
           href="/tasks?overdue=1"
           tone={data.overdueTasks > 0 ? "critical" : undefined}
+          icon={AlertTriangle}
+          accent="danger"
         />
         <StatTile
           label="Needing attention"
@@ -44,6 +55,8 @@ export default async function DashboardPage() {
           hint="At risk or off track"
           href="/projects"
           tone={data.atRiskProjects > 0 ? "critical" : undefined}
+          icon={ShieldAlert}
+          accent="warning"
         />
       </div>
 

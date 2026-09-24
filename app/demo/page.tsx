@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import {
+  Sparkles,
+  FolderKanban,
+  ListChecks,
+  AlertTriangle,
+  ShieldAlert,
+} from "lucide-react";
 import { Badge, Card, EmptyState } from "@/components/ui/card";
 import { StatTile } from "@/components/dashboard/stat-tile";
 import { BudgetMeters, ProgressChart } from "@/components/dashboard/charts";
@@ -79,14 +85,32 @@ export default function DemoPage() {
         <h2 className="text-lg font-semibold">Dashboard</h2>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatTile label="Active projects" value={2} />
-          <StatTile label="Open tasks" value={22} />
-          <StatTile label="Overdue" value={4} tone="critical" />
+          <StatTile
+            label="Active projects"
+            value={2}
+            icon={FolderKanban}
+            accent="primary"
+          />
+          <StatTile
+            label="Open tasks"
+            value={22}
+            icon={ListChecks}
+            accent="info"
+          />
+          <StatTile
+            label="Overdue"
+            value={4}
+            tone="critical"
+            icon={AlertTriangle}
+            accent="danger"
+          />
           <StatTile
             label="Needing attention"
             value={2}
             hint="At risk or off track"
             tone="critical"
+            icon={ShieldAlert}
+            accent="warning"
           />
         </div>
 

@@ -78,6 +78,15 @@ function todayInTimeZone(): { year: number; month: number; day: number } {
   return { year: get("year"), month: get("month"), day: get("day") };
 }
 
+/** Today's date as "YYYY-MM-DD" in TIME_ZONE — for anything that needs to
+ * compare against `date`-typed columns (which have no timezone of their own)
+ * the same way formatRelativeDays already does, rather than a fresh
+ * ad hoc computation with its own hydration risk. */
+export function todayISO(): string {
+  const t = todayInTimeZone();
+  return `${t.year}-${String(t.month).padStart(2, "0")}-${String(t.day).padStart(2, "0")}`;
+}
+
 /** "in 3 days", "2 days ago" — for due dates, which are the whole point. */
 export function formatRelativeDays(date: string | null | undefined): string {
   if (!date) return "—";

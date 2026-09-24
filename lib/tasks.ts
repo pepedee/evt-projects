@@ -33,7 +33,35 @@ export interface TaskRow {
 /** A task carrying just enough of its project to render a cross-project list. */
 export type TaskWithProject = TaskRow & {
   projects: { name: string; code: string | null; currency: string } | null;
+  /** PostgREST's embedded-count shape: an array with one row, `{ count }`.
+   * Optional so fixtures (app/demo) that predate this field still type-check. */
+  documents?: { count: number }[];
 };
+
+export function attachmentCount(task: Pick<TaskWithProject, "documents">): number {
+  return task.documents?.[0]?.count ?? 0;
+}
+
+/** Deterministic accent per person, cycling through tokens already validated
+ * for every theme (see stat-tile.tsx) — no new colours to maintain, and
+ * stable across renders/reloads since it's derived from the id, not order. */
+const AVATAR_ACCENTS = ["--primary", "--chart-1", "--warning", "--danger"] as const;
+
+export function avatarAccentVar(userId: string): string {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    hash = (hash * 31 + userId.charCodeAt(i)) >>> 0;
+  }
+  return AVATAR_ACCENTS[hash % AVATAR_ACCENTS.length];
+}
+
+export function initials(name: string | null | undefined): string {
+  if (!name?.trim()) return "?";
+  const parts = name.trim().split(/\s+/);
+  const first = parts[0]?.[0] ?? "";
+  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : "";
+  return (first + last).toUpperCase() || "?";
+}
 
 /** Kanban column order. Cancelled is deliberately absent — it is not a column. */
 export const BOARD_COLUMNS: TaskStatus[] = [

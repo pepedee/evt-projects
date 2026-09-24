@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { can, requireUser } from "@/lib/auth";
 import { listTasks } from "@/lib/db/tasks";
+import { listMembers } from "@/lib/db/workspace";
 import { Card, EmptyState } from "@/components/ui/card";
 import { FilterBar } from "@/components/shared/filter-bar";
 import { TaskBoard } from "@/components/tasks/task-board";
@@ -41,13 +42,17 @@ export default async function TasksPage({
   const view = single("view") === "list" ? "list" : "board";
   const overdueOnly = single("overdue") === "1";
 
-  const tasks = await listTasks(user.workspaceId, {
-    search: single("q"),
-    status: single("status") as TaskStatus | "all" | undefined,
-    priority: single("priority") as Priority | "all" | undefined,
-    overdueOnly,
-  });
+  const [tasks, members] = await Promise.all([
+    listTasks(user.workspaceId, {
+      search: single("q"),
+      status: single("status") as TaskStatus | "all" | undefined,
+      priority: single("priority") as Priority | "all" | undefined,
+      overdueOnly,
+    }),
+    listMembers(user.workspaceId),
+  ]);
 
+  const memberNames = new Map(members.map((m) => [m.user_id, m.full_name]));
   const canEdit = can(user, "member");
 
   return (
@@ -93,7 +98,7 @@ export default async function TasksPage({
           <EmptyState message="No tasks match these filters. Add tasks from a project." />
         </Card>
       ) : view === "board" ? (
-        <TaskBoard tasks={tasks} canEdit={canEdit} />
+        <TaskBoard tasks={tasks} canEdit={canEdit} memberNames={memberNames} />
       ) : (
         <Card>
           <TaskList

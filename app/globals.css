@@ -149,6 +149,36 @@ body {
   --danger: #ff453a;
 }
 
+[data-theme="soft"] {
+  --background: #f4f1fc;
+  --surface: #ffffff;
+  --surface-2: #f8f6fd;
+  --foreground: #221c35;
+  --muted: #756e91;
+  --border: #e8e2f9;
+  --primary: #6d5bfa;
+  --primary-fg: #ffffff;
+  --ring: #6d5bfa;
+  --success: #15925a;
+  --warning: #c2670b;
+  --danger: #e0245e;
+}
+
+[data-theme="soft"].dark {
+  --background: #150f24;
+  --surface: #1e1832;
+  --surface-2: #251d3d;
+  --foreground: #f1edfb;
+  --muted: #a79bcf;
+  --border: #332a52;
+  --primary: #a291ff;
+  --primary-fg: #150f24;
+  --ring: #a291ff;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #fb7185;
+}
+
 /* Corner radius: a little tighter than default for macOS's traditional
    rounded-rect controls, noticeably rounder — pills on buttons/links — for
    iOS 26's "Liquid Glass" language. Overrides the existing Tailwind utility
@@ -165,6 +195,21 @@ body {
 [data-theme="ios26"] textarea.rounded-lg { border-radius: 16px; }
 [data-theme="ios26"] button.rounded-lg,
 [data-theme="ios26"] a.rounded-lg { border-radius: 999px; }
+
+/* Soft: the roundest, most playful of the four — big pill-shaped controls,
+   deeply rounded cards, no glass (that's macOS/iOS 26's thing). Cards lean
+   on a tinted soft shadow instead of a hard border for the "floating card on
+   a pastel background" feel, same tradeoff already made for iOS 26: no
+   shadow on ordinary bordered surfaces would look flat next to the big
+   radius, but forms/tables stay on plain borders — nothing here reduces
+   legibility of money or dates. */
+[data-theme="soft"] .rounded-2xl { border-radius: 28px; }
+[data-theme="soft"] .rounded-xl { border-radius: 20px; }
+[data-theme="soft"] input.rounded-lg,
+[data-theme="soft"] select.rounded-lg,
+[data-theme="soft"] textarea.rounded-lg { border-radius: 16px; }
+[data-theme="soft"] button.rounded-lg,
+[data-theme="soft"] a.rounded-lg { border-radius: 999px; }
 
 /* Glass chrome: the sidebar and topbar go translucent with a heavy blur —
    real "vibrancy", not just a lighter surface colour. Left off ordinary
@@ -191,6 +236,15 @@ body {
 }
 [data-theme="ios26"].dark .border-border.bg-surface {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="soft"] .border-border.bg-surface {
+  border-color: transparent;
+  box-shadow: 0 2px 6px rgba(109, 91, 250, 0.07), 0 14px 32px rgba(109, 91, 250, 0.1);
+}
+[data-theme="soft"].dark .border-border.bg-surface {
+  border-color: transparent;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 14px 32px rgba(0, 0, 0, 0.4);
 }
 
 /* Focus ring that stays visible in both themes. */

@@ -26,6 +26,7 @@ import {
 } from "@/components/shared/status-badge";
 import { MilestoneList } from "@/components/projects/milestone-list";
 import { MilestoneImport } from "@/components/projects/milestone-import";
+import { ProjectTimeline } from "@/components/projects/project-timeline";
 import { TaskList } from "@/components/tasks/task-list";
 import { ArchiveProjectButton } from "@/components/projects/archive-button";
 import { formatDate } from "@/lib/format";
@@ -147,6 +148,18 @@ export default async function ProjectDetailPage({
           tone={project.variance < 0 ? "danger" : undefined}
         />
       </div>
+
+      <Card
+        title="Timeline"
+        description="Milestones and dated tasks on one schedule — read-only; edit dates from the lists below."
+      >
+        <ProjectTimeline
+          milestones={milestones}
+          tasks={tasks}
+          projectStartDate={project.start_date}
+          projectTargetDate={project.target_date}
+        />
+      </Card>
 
       <Card
         title="AI summary"

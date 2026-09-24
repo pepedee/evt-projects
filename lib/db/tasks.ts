@@ -21,7 +21,7 @@ const TASK_COLUMNS =
   "assignee_id, estimate_hours, spent_hours, start_date, due_date, " +
   "completed_at, sort_order, created_at";
 
-const TASK_WITH_PROJECT = `${TASK_COLUMNS}, projects(name, code, currency)`;
+const TASK_WITH_PROJECT = `${TASK_COLUMNS}, projects(name, code, currency), documents(count)`;
 
 export async function listTasks(
   workspaceId: string,
