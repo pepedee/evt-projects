@@ -20,6 +20,16 @@ uploads (private bucket, signed URLs) · AI summaries
 (status/risk/standup/report-intro, cached by input hash) · Word report
 generation (`docx`, generated from code).
 
+**Inbox automation (phase 51).** `npm run inbox` (`scripts/inbox.ts`) files
+documents from the owner's Google Drive folders into the tracker — new
+quotations, customer POs, photos, invoices/receipts — run hourly by the Claude
+scheduled task `evt-projects-inbox`. It writes to the *real* workspace with
+the service-role key, so test changes to it against a throwaway account via
+`INBOX_WORKSPACE` / `INBOX_OWNER` / `INBOX_DRIVE_ROOT` / `INBOX_STATE_DIR`,
+never against the real folders. Keep every job idempotent in the database
+(not just via the ledger) and keep "report for review" as the answer to
+anything ambiguous.
+
 **Removed from the app, tables kept (phase 45).** Materials/procurement and
 the QC inspection grid were taken out of the UI at the owner's request. Their
 tables (`materials`, `qc_items`, `qc_units`, `qc_results`, 0018) and data are

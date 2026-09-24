@@ -41,3 +41,7 @@ supabase/.temp
 # belongs in source control, committed or not
 /_Projects/
 /_Documents_Report/
+
+# inbox automation state (scripts/inbox.ts) — local to this PC
+.inbox-ledger.json
+.inbox.lock
