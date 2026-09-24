@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { deriveHealth } from "@/lib/health";
+import { assessHealth, needsAttention } from "@/lib/health";
 import type {
   Health,
   MilestoneStatus,
@@ -50,6 +50,8 @@ export type Project = Omit<
   "planned_total" | "spent_total" | "spent_unassigned"
 > & {
   health: Health;
+  /** Why health isn't on track, e.g. "3 of 8 tasks overdue"; null when it is. */
+  health_reason: string | null;
   planned_total: number;
   spent_total: number;
   spent_unassigned: number;
@@ -74,6 +76,8 @@ export interface ProjectFilters {
   status?: ProjectStatus | "all";
   priority?: Priority | "all";
   sort?: ProjectSort;
+  /** Only projects that are at risk or off track (see needsAttention). */
+  attention?: boolean;
   page?: number;
   pageSize?: number;
 }
@@ -90,10 +94,12 @@ export function toNumber(value: number | string | null | undefined): number {
 function withHealth(row: ProjectRow): Project {
   const planned_total = toNumber(row.planned_total);
   const spent_total = toNumber(row.spent_total);
+  const { health, reason } = assessHealth(row);
 
   return {
     ...row,
-    health: deriveHealth(row),
+    health,
+    health_reason: reason,
     planned_total,
     spent_total,
     spent_unassigned: toNumber(row.spent_unassigned),
@@ -144,6 +150,23 @@ export async function listProjects(
     query = query.order("updated_at", { ascending: false });
   }
 
+  const pageOf = (total: number) => Math.max(1, Math.ceil(total / pageSize));
+
+  // Health is derived in code from dates that keep moving (see lib/health),
+  // so there's no column to filter on in the query: fetch the workspace's
+  // projects, keep the ones needing attention, then page in memory. Fine at
+  // this app's scale (tens of projects, not tens of thousands).
+  if (filters.attention) {
+    const { data, error } = await query.returns<ProjectRow[]>();
+    if (error) throw new Error(error.message);
+    const matching = (data ?? []).map(withHealth).filter(needsAttention);
+    return {
+      rows: matching.slice((page - 1) * pageSize, page * pageSize),
+      total: matching.length,
+      pageCount: pageOf(matching.length),
+    };
+  }
+
   const { data, count, error } = await query
     .range((page - 1) * pageSize, page * pageSize - 1)
     .returns<ProjectRow[]>();
@@ -154,7 +177,7 @@ export async function listProjects(
   return {
     rows: (data ?? []).map(withHealth),
     total,
-    pageCount: Math.max(1, Math.ceil(total / pageSize)),
+    pageCount: pageOf(total),
   };
 }
 

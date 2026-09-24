@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { listProjects, type Project } from "@/lib/db/projects";
+import { needsAttention } from "@/lib/health";
 import { today, type TaskWithProject } from "@/lib/tasks";
 
 /** How far ahead the "what's coming" list looks. */
@@ -77,7 +78,7 @@ export async function getDashboard(workspaceId: string): Promise<DashboardData> 
     activeProjects: projects.filter((p) => p.status === "active").length,
     openTasks: live.reduce((sum, p) => sum + p.task_open, 0),
     overdueTasks: live.reduce((sum, p) => sum + p.task_overdue, 0),
-    atRiskProjects: live.filter((p) => p.health !== "on_track").length,
+    atRiskProjects: projects.filter(needsAttention).length,
     progress: live
       .filter((p) => p.task_total > 0)
       .sort((a, b) => b.progress_pct - a.progress_pct),

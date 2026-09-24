@@ -58,7 +58,7 @@ export default async function DashboardPage() {
           label="Needing attention"
           value={data.atRiskProjects}
           hint="At risk or off track"
-          href="/projects"
+          href="/projects?health=attention"
           tone={data.atRiskProjects > 0 ? "critical" : undefined}
           icon={ShieldAlert}
           accent="warning"

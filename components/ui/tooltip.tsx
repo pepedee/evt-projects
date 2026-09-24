@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +20,7 @@ const MARGIN = 8;
  * too — an absolutely-positioned tooltip that pokes outside the row gets
  * clipped by the container (confirmed empirically against the budget-lines
  * table). Escaping to a body-level portal sidesteps that entirely; the
- * horizontal clamp below does the same for the browser viewport itself.
+ * horizontal clamp below keeps it inside the browser viewport too.
  */
 export function Tooltip({
   label,
@@ -32,17 +32,30 @@ export function Tooltip({
   children: React.ReactNode;
 }) {
   const triggerRef = useRef<HTMLSpanElement>(null);
+  const bubbleRef = useRef<HTMLSpanElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
   function show() {
     const rect = triggerRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const left = Math.min(
-      Math.max(rect.left + rect.width / 2, MARGIN),
-      window.innerWidth - MARGIN,
-    );
-    setPos({ top: rect.bottom + 6, left });
+    setPos({ top: rect.bottom + 6, left: rect.left + rect.width / 2 });
   }
+
+  // Keep the whole bubble on screen, not just its centre — a long label next
+  // to the viewport edge (e.g. a project's attention reason) otherwise gets
+  // its first or last words cut off. Needs the rendered width, so it runs
+  // after layout but before paint, writing the corrected position straight
+  // to the DOM (no extra render, no visible jump).
+  useLayoutEffect(() => {
+    const bubble = bubbleRef.current;
+    if (!pos || !bubble) return;
+    const half = bubble.offsetWidth / 2;
+    const left = Math.min(
+      Math.max(pos.left, MARGIN + half),
+      window.innerWidth - MARGIN - half,
+    );
+    bubble.style.left = `${left}px`;
+  }, [pos]);
   function hide() {
     setPos(null);
   }
@@ -60,6 +73,7 @@ export function Tooltip({
       {pos &&
         createPortal(
           <span
+            ref={bubbleRef}
             role="tooltip"
             style={{ top: pos.top, left: pos.left }}
             className="pointer-events-none fixed z-50 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-xs font-medium text-background shadow-lg"

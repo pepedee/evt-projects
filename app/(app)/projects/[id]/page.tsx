@@ -9,6 +9,8 @@ import { listDocuments } from "@/lib/db/documents";
 import { listPaymentTerms } from "@/lib/db/payments";
 import { PaymentTerms } from "@/components/payments/payment-terms";
 import { DoneMark } from "@/components/projects/done-mark";
+import { AttentionMark } from "@/components/projects/attention-mark";
+import { needsAttention } from "@/lib/health";
 import { BudgetLines } from "@/components/budgets/budget-lines";
 import { ExpenseList } from "@/components/budgets/expense-list";
 import { UploadButton } from "@/components/files/upload-button";
@@ -63,6 +65,13 @@ export default async function ProjectDetailPage({
           </Link>
           <h1 className="mt-1 flex items-center gap-2 text-2xl font-semibold">
             {project.status === "completed" && <DoneMark size="lg" />}
+            {needsAttention(project) && (
+              <AttentionMark
+                health={project.health}
+                reason={project.health_reason}
+                size="lg"
+              />
+            )}
             <span className="min-w-0">{project.name}</span>
           </h1>
           <p className="mt-1 text-sm text-muted">
@@ -76,8 +85,20 @@ export default async function ProjectDetailPage({
             <ProjectStatusBadge status={project.status} />
             <PriorityBadge priority={project.priority} />
             <HealthBadge health={project.health} />
-            {project.health_override && (
-              <span className="text-xs text-muted">(health set manually)</span>
+            {needsAttention(project) && project.health_reason ? (
+              <span
+                className={
+                  project.health === "off_track"
+                    ? "text-xs font-medium text-danger"
+                    : "text-xs font-medium text-warning"
+                }
+              >
+                {project.health_reason}
+              </span>
+            ) : (
+              project.health_override && (
+                <span className="text-xs text-muted">(health set manually)</span>
+              )
             )}
           </div>
         </div>

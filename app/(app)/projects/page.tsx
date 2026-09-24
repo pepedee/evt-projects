@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Plus, Upload } from "lucide-react";
-import { listProjects } from "@/lib/db/projects";
+import { listProjects, type Project } from "@/lib/db/projects";
+import { needsAttention } from "@/lib/health";
+import { cn } from "@/lib/utils";
+import { AttentionMark } from "@/components/projects/attention-mark";
 import { requireUser } from "@/lib/auth";
 import { can } from "@/lib/auth";
 import { Card, EmptyState } from "@/components/ui/card";
@@ -35,6 +38,11 @@ const PRIORITY_OPTIONS = [
   { value: "critical", label: "Critical" },
 ];
 
+const HEALTH_OPTIONS = [
+  { value: "all", label: "Any health" },
+  { value: "attention", label: "Needing attention" },
+];
+
 const SORT_OPTIONS = [
   { value: "all", label: "Recently updated" },
   { value: "name", label: "Name" },
@@ -58,6 +66,7 @@ export default async function ProjectsPage({
     status: single("status") as ProjectStatus | "all" | undefined,
     priority: single("priority") as Priority | "all" | undefined,
     sort: sortParam === "name" || sortParam === "code" ? sortParam : undefined,
+    attention: single("health") === "attention",
     page: Number(single("page") ?? 1),
   });
 
@@ -99,6 +108,7 @@ export default async function ProjectsPage({
         selects={[
           { name: "status", label: "Status", options: STATUS_OPTIONS },
           { name: "priority", label: "Priority", options: PRIORITY_OPTIONS },
+          { name: "health", label: "Health", options: HEALTH_OPTIONS },
           { name: "sort", label: "Sort by", options: SORT_OPTIONS },
         ]}
       />
@@ -110,61 +120,12 @@ export default async function ProjectsPage({
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {rows.map((project) => (
-            // A button inside an <a> is invalid HTML, so rather than wrapping
-            // the card in one link, the title link is stretched over the card
-            // (after:inset-0) and the Edit/Delete icons sit above it (z-10).
-            <Card
+            <ProjectCard
               key={project.id}
-              className="relative h-full p-5 transition hover:border-primary"
-            >
-              <div className="flex items-start gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    {project.status === "completed" && <DoneMark />}
-                    <h2 className="min-w-0 truncate font-semibold">
-                      <Link
-                        href={`/projects/${project.id}`}
-                        className="after:absolute after:inset-0 after:content-['']"
-                      >
-                        {project.name}
-                      </Link>
-                    </h2>
-                  </div>
-                  <p className="mt-0.5 truncate text-sm text-muted">
-                    {project.code ? `${project.code} · ` : ""}
-                    {project.client_name ?? "No client"}
-                  </p>
-                </div>
-                <HealthBadge health={project.health} />
-                <ProjectCardActions
-                  projectId={project.id}
-                  projectName={project.name}
-                  canEdit={canEdit}
-                  canDelete={canDelete}
-                />
-              </div>
-
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <ProjectStatusBadge status={project.status} />
-                <PriorityBadge priority={project.priority} />
-              </div>
-
-              <div className="mt-4">
-                <div className="mb-1.5 flex justify-between text-xs text-muted">
-                  <span>
-                    {project.task_done}/{project.task_total} tasks
-                    {project.task_overdue > 0 &&
-                      ` · ${project.task_overdue} overdue`}
-                  </span>
-                  <span className="tabular-nums">{project.progress_pct}%</span>
-                </div>
-                <ProgressBar value={project.progress_pct} />
-              </div>
-
-              <p className="mt-3 text-xs text-muted">
-                Target {formatDate(project.target_date)}
-              </p>
-            </Card>
+              project={project}
+              canEdit={canEdit}
+              canDelete={canDelete}
+            />
           ))}
         </div>
       )}
@@ -177,6 +138,94 @@ export default async function ProjectsPage({
         />
       )}
     </div>
+  );
+}
+
+function ProjectCard({
+  project,
+  canEdit,
+  canDelete,
+}: {
+  project: Project;
+  canEdit: boolean;
+  canDelete: boolean;
+}) {
+  const attention = needsAttention(project);
+  const tone = project.health === "off_track" ? "danger" : "warning";
+
+  return (
+    // A button inside an <a> is invalid HTML, so rather than wrapping the
+    // card in one link, the title link is stretched over the card
+    // (after:inset-0) and the Edit/Delete icons sit above it (z-10).
+    <Card
+      className={cn(
+        "relative h-full p-5 transition hover:border-primary",
+        attention && (tone === "danger" ? "border-danger/60" : "border-warning/60"),
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            {project.status === "completed" && <DoneMark />}
+            {attention && (
+              <AttentionMark health={project.health} reason={project.health_reason} />
+            )}
+            <h2 className="min-w-0 truncate font-semibold">
+              <Link
+                href={`/projects/${project.id}`}
+                className="after:absolute after:inset-0 after:content-['']"
+              >
+                {project.name}
+              </Link>
+            </h2>
+          </div>
+          <p className="mt-0.5 truncate text-sm text-muted">
+            {project.code ? `${project.code} · ` : ""}
+            {project.client_name ?? "No client"}
+          </p>
+        </div>
+        <HealthBadge health={project.health} />
+        <ProjectCardActions
+          projectId={project.id}
+          projectName={project.name}
+          canEdit={canEdit}
+          canDelete={canDelete}
+        />
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <ProjectStatusBadge status={project.status} />
+        <PriorityBadge priority={project.priority} />
+      </div>
+
+      {/* Spelled out, not only in the icon's tooltip — there's no hover on a
+          phone. */}
+      {attention && project.health_reason && (
+        <p
+          className={cn(
+            "mt-2 text-xs font-medium",
+            tone === "danger" ? "text-danger" : "text-warning",
+          )}
+        >
+          {project.health_reason}
+        </p>
+      )}
+
+      <div className="mt-4">
+        <div className="mb-1.5 flex justify-between text-xs text-muted">
+          <span>
+            {project.task_done}/{project.task_total} tasks
+            {project.task_overdue > 0 && ` · ${project.task_overdue} overdue`}
+          </span>
+          <span className="tabular-nums">{project.progress_pct}%</span>
+        </div>
+        <ProgressBar value={project.progress_pct} />
+      </div>
+
+      <p className="mt-3 text-xs text-muted">
+        Target {formatDate(project.target_date)}
+      </p>
+    </Card>
   );
 }
 

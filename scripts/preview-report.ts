@@ -56,6 +56,7 @@ const project: Project = {
   task_overdue: 3,
   task_blocked: 1,
   health: "off_track",
+  health_reason: "Target date passed 3 days ago",
   planned_total: 600000,
   spent_total: 781500,
   spent_unassigned: 42500,
