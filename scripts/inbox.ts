@@ -280,6 +280,7 @@ async function processQuotations(): Promise<number> {
       files.forEach((f) => markSeen(f, `created ${code}`));
       created++;
     } catch (err) {
+      stopIfAiUnavailable(err);
       report.review.push(`${rel(newest)}: couldn't read it (${(err as Error).message}).`);
     }
   }
@@ -381,6 +382,25 @@ async function processPhotos(folder: ProjectFolder) {
 
 // ------------------------------------------------ jobs 2 & 4: documents
 
+/**
+ * Account-level AI failures (no credit, rejected key) will fail every file
+ * the same way, so stop the run with one clear message instead of listing
+ * each file. Files it didn't get to stay unseen and are retried next run.
+ */
+class AiUnavailable extends Error {}
+
+function stopIfAiUnavailable(err: unknown) {
+  const message = err instanceof Error ? err.message : String(err);
+  if (/credit balance is too low/i.test(message)) {
+    throw new AiUnavailable(
+      "the Anthropic account is out of API credit — top it up at console.anthropic.com (Plans & Billing).",
+    );
+  }
+  if (/authentication_error|invalid x-api-key/i.test(message)) {
+    throw new AiUnavailable("the Anthropic API key was rejected — check ANTHROPIC_API_KEY in .env.local.");
+  }
+}
+
 type Source = "project-docs" | "customer-po" | "invoice" | "receipt";
 
 async function processDocument(file: string, source: Source, folderProject?: ProjectLite) {
@@ -388,6 +408,7 @@ async function processDocument(file: string, source: Source, folderProject?: Pro
   try {
     doc = await readBusinessDocument(readFileSync(file).toString("base64"));
   } catch (err) {
+    stopIfAiUnavailable(err);
     report.review.push(`${rel(file)}: couldn't read it (${(err as Error).message}).`);
     return;
   }
@@ -612,30 +633,39 @@ async function main() {
       return;
     }
 
-    const created = await processQuotations();
-    if (created > 0) {
-      await loadProjects();
-      execSync("npm run folders", {
-        cwd: ROOT,
-        stdio: "ignore",
-        env: { ...process.env, PROJECT_FOLDERS_ROOT: SOURCES.projects, PROJECT_FOLDERS_WORKSPACE: WORKSPACE_ID },
-      });
-      report.done.push(`Created PC folders for ${created} new project${created === 1 ? "" : "s"}`);
-    }
-
-    for (const folder of projectFolders()) {
-      await processPhotos(folder);
-      for (const f of listFiles(path.join(folder.dir, "Project Documents"), true).filter(isPdf).filter(isNew)) {
-        await processDocument(f, "project-docs", folder.project);
+    let stopped: string | null = null;
+    try {
+      const created = await processQuotations();
+      if (created > 0) {
+        await loadProjects();
+        execSync("npm run folders", {
+          cwd: ROOT,
+          stdio: "ignore",
+          env: { ...process.env, PROJECT_FOLDERS_ROOT: SOURCES.projects, PROJECT_FOLDERS_WORKSPACE: WORKSPACE_ID },
+        });
+        report.done.push(`Created PC folders for ${created} new project${created === 1 ? "" : "s"}`);
       }
+
+      for (const folder of projectFolders()) {
+        await processPhotos(folder);
+        for (const f of listFiles(path.join(folder.dir, "Project Documents"), true).filter(isPdf).filter(isNew)) {
+          await processDocument(f, "project-docs", folder.project);
+        }
+      }
+      for (const f of accountingPdfs(SOURCES.customerPOs).filter(isNew)) await processDocument(f, "customer-po");
+      for (const f of accountingPdfs(SOURCES.invoices).filter(isNew)) await processDocument(f, "invoice");
+      for (const f of accountingPdfs(SOURCES.receipts).filter(isNew)) await processDocument(f, "receipt");
+    } catch (err) {
+      if (!(err instanceof AiUnavailable)) throw err;
+      stopped = err.message;
     }
-    for (const f of accountingPdfs(SOURCES.customerPOs).filter(isNew)) await processDocument(f, "customer-po");
-    for (const f of accountingPdfs(SOURCES.invoices).filter(isNew)) await processDocument(f, "invoice");
-    for (const f of accountingPdfs(SOURCES.receipts).filter(isNew)) await processDocument(f, "receipt");
 
     const section = (title: string, lines: string[]) =>
       lines.length ? `\n${title} (${lines.length})\n${lines.map((l) => `  - ${l}`).join("\n")}` : "";
     const summary =
+      (stopped
+        ? `\nSTOPPED EARLY: ${stopped} Files not reached yet will be processed on the next run after that's fixed.`
+        : "") +
       section("DONE", report.done) + section("NEEDS REVIEW", report.review) + section("NOTES", report.info);
     console.log(
       `${DRY_RUN ? "DRY RUN — nothing was changed.\n" : ""}Inbox run ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Bangkok" })}` +
