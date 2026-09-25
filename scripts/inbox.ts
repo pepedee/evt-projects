@@ -11,10 +11,12 @@
  *   1. Quotation 2026/*.pdf with a new quotation number -> new project
  *      (same AI import as /projects/import) + its PC folder
  *   2. A customer PO (in a project's "Project Documents", or in
- *      "PO from Customer") -> project marked PO received, with no./date
+ *      "Projects/_Accounting/PO from Customer") -> project marked PO
+ *      received, with no./date
  *   3. Images in a project's "Photo" folder -> uploaded to its Files
- *   4. Evertech invoices / receipts (the billing folders, or a project's
- *      "Project Documents") -> the matching payment term invoiced / paid
+ *   4. Evertech invoices / receipts ("Projects/_Accounting/Invoices" and
+ *      "/Receipts", or a project's "Project Documents") -> the matching
+ *      payment term invoiced / paid
  *
  * Ground rules: every job is idempotent on its own (a duplicate project,
  * photo, PO or payment is detected even if the ledger is lost); anything
@@ -33,12 +35,16 @@ import { readBusinessDocument, type BusinessDocument } from "../lib/ai/business-
 import { BUCKET, MAX_UPLOAD_BYTES, buildStoragePath } from "../lib/storage";
 
 const DRIVE = process.env.INBOX_DRIVE_ROOT ?? "C:/Users/iampo/My Drive";
+const ACCOUNTING = `${DRIVE}/Evertech Cooling/Projects/_Accounting`;
 const SOURCES = {
   quotations: `${DRIVE}/Evertech Cooling/Quotation 2026`,
   projects: `${DRIVE}/Evertech Cooling/Projects`,
-  customerPOs: `${DRIVE}/Evertech Cooling/PO from Customer`,
-  invoices: `${DRIVE}/ChatGPT/Input_Data/2. Invoice ใบแจ้งหนี้ ใบวางบิล`,
-  receipts: `${DRIVE}/ChatGPT/Input_Data/4. Reciept-ใบเสร็จรับเงิน`,
+  // Subfolders (e.g. a year folder) are read too. "_Accounting/PO for
+  // Supplier" is deliberately not watched: those are Evertech's own orders
+  // to suppliers, not customers committing to a job.
+  customerPOs: `${ACCOUNTING}/PO from Customer`,
+  invoices: `${ACCOUNTING}/Invoices`,
+  receipts: `${ACCOUNTING}/Receipts`,
 };
 // "pepe's workspace" and its owner (bozosx@gmail.com) — see TASKS.md phase 37.
 // Overridable only so a test run can target a throwaway account.
@@ -111,13 +117,8 @@ function listFiles(dir: string, recursive = false): string[] {
 
 const isPdf = (f: string) => path.extname(f).toLowerCase() === ".pdf";
 
-/** The billing folders are split by year ("2026", "2027", ...). */
-function yearFolders(dir: string): string[] {
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && /^\d{4}$/.test(e.name) && Number(e.name) >= 2026)
-    .map((e) => path.join(dir, e.name));
-}
+/** PDFs in an _Accounting folder, including any subfolders (e.g. by year). */
+const accountingPdfs = (dir: string) => listFiles(dir, true).filter(isPdf);
 
 // ------------------------------------------------------------------ codes
 
@@ -581,9 +582,9 @@ async function applyPayment(file: string, project: ProjectLite, doc: BusinessDoc
 function allWatchedFiles(): string[] {
   const files = [
     ...listFiles(SOURCES.quotations).filter(isPdf),
-    ...listFiles(SOURCES.customerPOs).filter(isPdf),
-    ...yearFolders(SOURCES.invoices).flatMap((d) => listFiles(d).filter(isPdf)),
-    ...yearFolders(SOURCES.receipts).flatMap((d) => listFiles(d).filter(isPdf)),
+    ...accountingPdfs(SOURCES.customerPOs),
+    ...accountingPdfs(SOURCES.invoices),
+    ...accountingPdfs(SOURCES.receipts),
   ];
   for (const { dir } of projectFolders()) {
     files.push(...listFiles(path.join(dir, "Photo"), true));
@@ -628,11 +629,9 @@ async function main() {
         await processDocument(f, "project-docs", folder.project);
       }
     }
-    for (const f of listFiles(SOURCES.customerPOs).filter(isPdf).filter(isNew)) await processDocument(f, "customer-po");
-    for (const d of yearFolders(SOURCES.invoices))
-      for (const f of listFiles(d).filter(isPdf).filter(isNew)) await processDocument(f, "invoice");
-    for (const d of yearFolders(SOURCES.receipts))
-      for (const f of listFiles(d).filter(isPdf).filter(isNew)) await processDocument(f, "receipt");
+    for (const f of accountingPdfs(SOURCES.customerPOs).filter(isNew)) await processDocument(f, "customer-po");
+    for (const f of accountingPdfs(SOURCES.invoices).filter(isNew)) await processDocument(f, "invoice");
+    for (const f of accountingPdfs(SOURCES.receipts).filter(isNew)) await processDocument(f, "receipt");
 
     const section = (title: string, lines: string[]) =>
       lines.length ? `\n${title} (${lines.length})\n${lines.map((l) => `  - ${l}`).join("\n")}` : "";

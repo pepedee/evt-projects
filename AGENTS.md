@@ -22,7 +22,9 @@ generation (`docx`, generated from code).
 
 **Inbox automation (phase 51).** `npm run inbox` (`scripts/inbox.ts`) files
 documents from the owner's Google Drive folders into the tracker — new
-quotations, customer POs, photos, invoices/receipts — run hourly by the Claude
+quotations, customer POs, photos, invoices/receipts (billing documents live
+in `Evertech Cooling\Projects\_Accounting\`; its `PO for Supplier` subfolder
+is intentionally ignored) — run hourly by the Claude
 scheduled task `evt-projects-inbox`. It writes to the *real* workspace with
 the service-role key, so test changes to it against a throwaway account via
 `INBOX_WORKSPACE` / `INBOX_OWNER` / `INBOX_DRIVE_ROOT` / `INBOX_STATE_DIR`,
