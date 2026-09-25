@@ -30,7 +30,10 @@ the service-role key, so test changes to it against a throwaway account via
 `INBOX_WORKSPACE` / `INBOX_OWNER` / `INBOX_DRIVE_ROOT` / `INBOX_STATE_DIR`,
 never against the real folders. Keep every job idempotent in the database
 (not just via the ledger) and keep "report for review" as the answer to
-anything ambiguous.
+anything ambiguous. Without Anthropic API credit, the owner can hand a PDF
+to Claude Code in chat instead: read it, write the `BusinessDocument` JSON,
+dry-run `npm run inbox -- --file <pdf> --doc <json> --dry-run`, show the owner
+what will be recorded, then run it without `--dry-run`.
 
 **Removed from the app, tables kept (phase 45).** Materials/procurement and
 the QC inspection grid were taken out of the UI at the owner's request. Their

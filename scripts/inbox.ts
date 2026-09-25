@@ -6,6 +6,9 @@
  *   npm run inbox                  process anything new
  *   npm run inbox -- --dry-run     read and report, change nothing
  *   npm run inbox -- --baseline    mark everything already there as seen
+ *   npm run inbox -- --file <pdf> --doc <json> [--dry-run]
+ *                                  record one document already read by
+ *                                  someone else (no API credit needed)
  *
  * Jobs:
  *   1. Quotation 2026/*.pdf with a new quotation number -> new project
@@ -60,6 +63,11 @@ const SETTLE_MS = 2 * 60 * 1000;
 
 const DRY_RUN = process.argv.includes("--dry-run");
 const BASELINE = process.argv.includes("--baseline");
+const argAfter = (flag: string) => {
+  const i = process.argv.indexOf(flag);
+  return i === -1 ? undefined : process.argv[i + 1];
+};
+const PREREAD = argAfter("--file") && argAfter("--doc") ? { file: argAfter("--file")!, doc: argAfter("--doc")! } : null;
 
 const IMAGE_MIME: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -403,10 +411,10 @@ function stopIfAiUnavailable(err: unknown) {
 
 type Source = "project-docs" | "customer-po" | "invoice" | "receipt";
 
-async function processDocument(file: string, source: Source, folderProject?: ProjectLite) {
+async function processDocument(file: string, source: Source, folderProject?: ProjectLite, preread?: BusinessDocument) {
   let doc: BusinessDocument;
   try {
-    doc = await readBusinessDocument(readFileSync(file).toString("base64"));
+    doc = preread ?? (await readBusinessDocument(readFileSync(file).toString("base64")));
   } catch (err) {
     stopIfAiUnavailable(err);
     report.review.push(`${rel(file)}: couldn't read it (${(err as Error).message}).`);
@@ -600,6 +608,28 @@ async function applyPayment(file: string, project: ProjectLite, doc: BusinessDoc
 
 // ------------------------------------------------------------------ main
 
+/** Which job a file belongs to, from where it sits in the Drive. */
+function sourceOf(file: string): { source: Source; folderProject?: ProjectLite } | null {
+  const inside = (dir: string) => !path.relative(dir, file).startsWith("..");
+  if (inside(SOURCES.customerPOs)) return { source: "customer-po" };
+  if (inside(SOURCES.invoices)) return { source: "invoice" };
+  if (inside(SOURCES.receipts)) return { source: "receipt" };
+  const folder = projectFolders().find(({ dir }) => inside(path.join(dir, "Project Documents")));
+  return folder ? { source: "project-docs", folderProject: folder.project } : null;
+}
+
+/**
+ * --file <pdf> --doc <json>: record one document whose contents were read
+ * outside this script (e.g. by Claude Code in a chat, so no API credit is
+ * needed). The JSON is a BusinessDocument; every check below still applies.
+ */
+async function processPreread(file: string, docFile: string) {
+  const where = sourceOf(file);
+  if (!where) throw new Error(`${file} isn't in a watched folder (_Accounting or a project's Project Documents).`);
+  const doc = JSON.parse(readFileSync(docFile, "utf8")) as BusinessDocument;
+  await processDocument(file, where.source, where.folderProject, doc);
+}
+
 function allWatchedFiles(): string[] {
   const files = [
     ...listFiles(SOURCES.quotations).filter(isPdf),
@@ -612,6 +642,29 @@ function allWatchedFiles(): string[] {
     files.push(...listFiles(path.join(dir, "Project Documents"), true).filter(isPdf));
   }
   return files;
+}
+
+async function runJobs() {
+  const created = await processQuotations();
+  if (created > 0) {
+    await loadProjects();
+    execSync("npm run folders", {
+      cwd: ROOT,
+      stdio: "ignore",
+      env: { ...process.env, PROJECT_FOLDERS_ROOT: SOURCES.projects, PROJECT_FOLDERS_WORKSPACE: WORKSPACE_ID },
+    });
+    report.done.push(`Created PC folders for ${created} new project${created === 1 ? "" : "s"}`);
+  }
+
+  for (const folder of projectFolders()) {
+    await processPhotos(folder);
+    for (const f of listFiles(path.join(folder.dir, "Project Documents"), true).filter(isPdf).filter(isNew)) {
+      await processDocument(f, "project-docs", folder.project);
+    }
+  }
+  for (const f of accountingPdfs(SOURCES.customerPOs).filter(isNew)) await processDocument(f, "customer-po");
+  for (const f of accountingPdfs(SOURCES.invoices).filter(isNew)) await processDocument(f, "invoice");
+  for (const f of accountingPdfs(SOURCES.receipts).filter(isNew)) await processDocument(f, "receipt");
 }
 
 async function main() {
@@ -635,26 +688,8 @@ async function main() {
 
     let stopped: string | null = null;
     try {
-      const created = await processQuotations();
-      if (created > 0) {
-        await loadProjects();
-        execSync("npm run folders", {
-          cwd: ROOT,
-          stdio: "ignore",
-          env: { ...process.env, PROJECT_FOLDERS_ROOT: SOURCES.projects, PROJECT_FOLDERS_WORKSPACE: WORKSPACE_ID },
-        });
-        report.done.push(`Created PC folders for ${created} new project${created === 1 ? "" : "s"}`);
-      }
-
-      for (const folder of projectFolders()) {
-        await processPhotos(folder);
-        for (const f of listFiles(path.join(folder.dir, "Project Documents"), true).filter(isPdf).filter(isNew)) {
-          await processDocument(f, "project-docs", folder.project);
-        }
-      }
-      for (const f of accountingPdfs(SOURCES.customerPOs).filter(isNew)) await processDocument(f, "customer-po");
-      for (const f of accountingPdfs(SOURCES.invoices).filter(isNew)) await processDocument(f, "invoice");
-      for (const f of accountingPdfs(SOURCES.receipts).filter(isNew)) await processDocument(f, "receipt");
+      if (PREREAD) await processPreread(path.resolve(PREREAD.file), PREREAD.doc);
+      else await runJobs();
     } catch (err) {
       if (!(err instanceof AiUnavailable)) throw err;
       stopped = err.message;
