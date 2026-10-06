@@ -35,6 +35,15 @@ to Claude Code in chat instead: read it, write the `BusinessDocument` JSON,
 dry-run `npm run inbox -- --file <pdf> --doc <json> --dry-run`, show the owner
 what will be recorded, then run it without `--dry-run`.
 
+**MCP server (phase 54).** `scripts/mcp-server.ts` exposes the tracker to
+Claude as tools (projects, receivables, costs, recording documents). Prefer
+its tools over ad-hoc SQL when they're available in the session. Start it as
+`node node_modules/tsx/dist/cli.mjs --env-file=.env.local scripts/mcp-server.ts`
+— never via `npm run`, whose banner corrupts the stdio protocol. Writes are
+preview-then-confirm by design; keep it that way. It shares the inbox's
+`INBOX_WORKSPACE` / `INBOX_OWNER` overrides for testing against a throwaway
+account.
+
 **Removed from the app, tables kept (phase 45).** Materials/procurement and
 the QC inspection grid were taken out of the UI at the owner's request. Their
 tables (`materials`, `qc_items`, `qc_units`, `qc_results`, 0018) and data are
